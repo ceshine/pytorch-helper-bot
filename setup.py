@@ -2,15 +2,18 @@ from distutils.core import setup
 
 setup(
     name='PyTorchHelperBot',
-    version='0.3.0',
+    version='0.3.1',
     packages=['helperbot', ],
     install_requires=[
-        'torch>=0.4.1',
+        'torch>=1.3.0',
         'dataclasses',
         'tqdm>=4.29.1',
         'scikit-learn>=0.21.2',
         'tensorboardX>=1.8'
     ],
+    extras_require={
+        'telegram':  ["python-telegram-bot>=12.0.0"]
+    },
     classifiers=[  # Optional
         # How mature is this project? Common values are
         #   3 - Alpha
