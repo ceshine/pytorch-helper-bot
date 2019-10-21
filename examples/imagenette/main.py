@@ -14,7 +14,8 @@ from helperbot import (
     MixUpCallback, Top1Accuracy, TopKAccuracy,
     MovingAverageStatsTrackerCallback,
     CheckpointCallback, EarlyStoppingCallback,
-    MultiStageScheduler, LinearLR
+    MultiStageScheduler, LinearLR,
+    TelegramCallback
 )
 from helperbot.loss import MixUpSoftmaxLoss
 from helperbot.lr_finder import LRFinder
@@ -22,6 +23,7 @@ from helperbot.lr_finder import LRFinder
 from models import get_seresnet_model, get_densenet_model, get_efficientnet_model
 from dataset import TrainDataset, N_CLASSES, DATA_ROOT, build_dataframe_from_folder
 from transforms import get_train_transform, get_test_transform
+from telegram_tokens import BOT_TOKEN, CHAT_ID
 
 try:
     from apex import amp
@@ -164,6 +166,13 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
     if args.mixup_alpha:
         callbacks.append(MixUpCallback(
             alpha=args.mixup_alpha, softmax_target=True))
+    if BOT_TOKEN:
+        callbacks.append(
+            TelegramCallback(
+                token=BOT_TOKEN, chat_id=CHAT_ID, name="Imagenette",
+                report_evals=True
+            )
+        )
     bot = ImageClassificationBot(
         model=model, train_loader=train_loader,
         valid_loader=valid_loader, clip_grad=10.,

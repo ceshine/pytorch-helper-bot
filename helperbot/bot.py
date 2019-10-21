@@ -121,6 +121,10 @@ class BaseBot:
         for callback in self.callbacks:
             callback.on_step_ends(self, train_loss, train_weight)
 
+    def run_train_starts_callbacks(self):
+        for callback in self.callbacks:
+            callback.on_train_starts(self)
+
     def run_train_ends_callbacks(self):
         for callback in self.callbacks:
             callback.on_train_ends(self)
@@ -153,6 +157,8 @@ class BaseBot:
         except TypeError:
             # IterableDataset doesn't have length
             pass
+        # Train starts
+        self.run_train_starts_callbacks()
         try:
             while self.step < target_step:
                 epoch += 1
@@ -166,6 +172,7 @@ class BaseBot:
                     self.step += 1
                     train_loss, train_weight = self.train_one_step(
                         input_tensors, targets)
+                    # Step ends
                     self.run_step_ends_callbacks(train_loss, train_weight)
                     if (
                         (callable(checkpoint_interval) and checkpoint_interval(self.step)) or
@@ -173,13 +180,16 @@ class BaseBot:
                          self.step % checkpoint_interval == 0)
                     ):
                         metrics = self.eval(self.valid_loader)
+                        # Eval ends
                         self.run_eval_ends_callbacks(metrics)
                     if self.step >= target_step:
                         break
+                # Epoch ends
                 self.run_epoch_ends_callbacks(epoch + 1)
         except (KeyboardInterrupt, StopTraining):
             pass
         finally:
+            # Train ends
             self.run_train_ends_callbacks()
 
     def eval(self, loader):
@@ -231,6 +241,7 @@ class BaseBot:
         self.model.load_state_dict(torch.load(target_path)["model"])
 
     def state_dict(self):
+        """States needed to resume training from this point"""
         with torch.no_grad():
             state_dict = asdict(self)
             # drop loader to potentially save disk space

@@ -1,3 +1,4 @@
+import socket
 from datetime import datetime
 from collections import deque, defaultdict
 from typing import Dict, Tuple, List
@@ -11,13 +12,16 @@ from .bot import BaseBot, StopTraining
 __all__ = [
     "Callback", "MixUpCallback", "LearningRateSchedulerCallback",
     "StepwiseLinearPropertySchedulerCallback", "MovingAverageStatsTrackerCallback",
-    "CheckpointCallback", "EarlyStoppingCallback"
+    "CheckpointCallback", "EarlyStoppingCallback", "TelegramCallback"
 ]
 
 
 class Callback:
     def on_batch_inputs(self, bot: BaseBot, input_tensors: torch.Tensor, targets: torch.Tensor):
         return input_tensors, targets
+
+    def on_train_starts(self, bot: BaseBot):
+        return
 
     def on_train_ends(self, bot: BaseBot):
         return
@@ -39,6 +43,66 @@ class Callback:
 
     def reset(self):
         return
+
+
+class TelegramCallback(Callback):
+    """A Telegram notification callback
+
+    Reference: https://github.com/huggingface/knockknock
+    """
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%d"
+
+    def __init__(self, token: str, chat_id: int, name: str, report_evals: bool = False):
+        try:
+            import telegram
+        except ImportError:
+            raise ImportError(
+                "Please install 'python-telegram-bot' before using TelegramCallback.")
+        self.telegram_bot = telegram.Bot(token=token)
+        self.host_name = socket.gethostname()
+        self.report_evals = report_evals
+        self.chat_id = chat_id
+        self.name = name
+        self.start_time = None
+
+    def on_train_starts(self, bot: BaseBot):
+        self.start_time = datetime.now()
+        contents = [
+            f'{self.name} has started training 🎬',
+            'Machine name: %s' % self.host_name,
+            'Starting date: %s' % self.start_time.strftime(
+                TelegramCallback.DATE_FORMAT)
+        ]
+        text = '\n'.join(contents)
+        self.telegram_bot.send_message(chat_id=self.chat_id, text=text)
+
+    def on_train_ends(self, bot: BaseBot):
+        end_time = datetime.now()
+        elapsed_time = end_time - self.start_time
+        contents = [
+            f'{self.name} has finished training 🎉',
+            'Machine name: %s' % self.host_name,
+            'Starting date: %s' % self.start_time.strftime(
+                TelegramCallback.DATE_FORMAT),
+            'End date: %s' % end_time.strftime(
+                TelegramCallback.DATE_FORMAT),
+            'Training duration: %s' % str(elapsed_time)
+        ]
+        text = '\n'.join(contents)
+        self.telegram_bot.send_message(chat_id=self.chat_id, text=text)
+
+    def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
+        if self.report_evals is False:
+            return
+        contents = [
+            f"Metrics from {self.name} at step {bot.step}:"
+        ]
+        contents += [
+            f"{metric_name}: {metric_string}"
+            for metric_name, (metric_value, metric_string) in metrics.items()
+        ]
+        text = '\n'.join(contents)
+        self.telegram_bot.send_message(chat_id=self.chat_id, text=text)
 
 
 class MixUpCallback(Callback):
@@ -190,6 +254,9 @@ class MovingAverageStatsTrackerCallback(Callback):
 
 class CheckpointCallback(Callback):
     """Save and manage checkpoints.
+
+    You can resume training from a checkpoint.
+    See `Basebot.load_checkpoint()`.
     """
 
     def __init__(
