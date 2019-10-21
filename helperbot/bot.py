@@ -25,6 +25,10 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 
+if os.environ.get("DETERMINISTIC", None):
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 class StopTraining(Exception):
     pass

@@ -15,7 +15,7 @@ from helperbot import (
     MovingAverageStatsTrackerCallback,
     CheckpointCallback, EarlyStoppingCallback,
     MultiStageScheduler, LinearLR,
-    TelegramCallback
+    TelegramCallback, WandbCallback
 )
 from helperbot.loss import MixUpSoftmaxLoss
 from helperbot.lr_finder import LRFinder
@@ -161,6 +161,15 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
         EarlyStoppingCallback(
             patience=8, min_improv=1e-2,
             monitor_metric="accuracy"
+        ),
+        WandbCallback(
+            config={
+                "epochs": args.epochs,
+                "arch": args.arch
+            },
+            name="Imagenatte",
+            watch_freq=200,
+            watch_level="gradients"
         )
     ]
     if args.mixup_alpha:
@@ -179,7 +188,7 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
         optimizer=optimizer, echo=True,
         criterion=criterion,
         callbacks=callbacks,
-        pbar=True, use_tensorboard=True,
+        pbar=False, use_tensorboard=True,
         use_amp=(args.amp != '')
     )
     bot.train(

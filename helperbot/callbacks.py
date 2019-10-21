@@ -1,18 +1,24 @@
 import socket
 from datetime import datetime
 from collections import deque, defaultdict
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Optional
 from pathlib import Path
 
 import torch
 import numpy as np
+try:
+    import wandb
+    WANDB = True
+except ImportError:
+    WANDB = False
 
 from .bot import BaseBot, StopTraining
 
 __all__ = [
     "Callback", "MixUpCallback", "LearningRateSchedulerCallback",
     "StepwiseLinearPropertySchedulerCallback", "MovingAverageStatsTrackerCallback",
-    "CheckpointCallback", "EarlyStoppingCallback", "TelegramCallback"
+    "CheckpointCallback", "EarlyStoppingCallback", "TelegramCallback",
+    "WandbCallback"
 ]
 
 
@@ -43,6 +49,40 @@ class Callback:
 
     def reset(self):
         return
+
+
+class WandbCallback(Callback):
+    """ Callback for the Weights and Biases service
+
+    WARNING: Resuming is not fully supported yet.
+
+    Reference: https://github.com/wandb/client/raw/ef0911c47beebab0db8749d764802057d3480e69/wandb/fastai/__init__.py
+    """
+
+    def __init__(self, config: Dict, name: str, watch_level: Optional[str] = None, watch_freq: int = 100):
+        if WANDB is False:
+            raise ImportError(
+                "Please install 'wandb' before using WandbCallback.")
+        wandb.init(config=config, project=name)
+        self.watch_level = watch_level
+        self.watch_freq = watch_freq
+
+    def on_train_starts(self, bot: BaseBot):
+        wandb.watch(bot.model, log=self.watch_level,
+                    log_freq=self.watch_freq)
+
+    def on_step_ends(self, bot: BaseBot, train_loss: float, train_weight: int):
+        wandb.log({"train_loss": train_loss}, step=bot.step)
+
+    def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
+        metrics = {
+            metric_name: metric_value
+            for metric_name, (metric_value, _) in metrics.items()
+        }
+        # Rename to avoid conflicts
+        metrics["val_loss"] = metrics["loss"]
+        del metrics["loss"]
+        wandb.log(metrics, step=bot.step)
 
 
 class TelegramCallback(Callback):
