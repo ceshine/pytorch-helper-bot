@@ -10,12 +10,13 @@ from torch import nn, cuda
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from helperbot import (
-    BaseBot, WeightDecayOptimizerWrapper, LearningRateSchedulerCallback,
+    BaseBot, LearningRateSchedulerCallback,
     MixUpCallback, Top1Accuracy, TopKAccuracy,
     MovingAverageStatsTrackerCallback,
     CheckpointCallback, EarlyStoppingCallback,
     MultiStageScheduler, LinearLR,
-    TelegramCallback, WandbCallback
+    TelegramCallback, WandbCallback,
+    AdamW
 )
 from helperbot.loss import MixUpSoftmaxLoss
 from helperbot.lr_finder import LRFinder
@@ -66,23 +67,20 @@ class ImageClassificationBot(BaseBot):
 
 
 def get_optimizer(model, lr):
-    return WeightDecayOptimizerWrapper(
-        torch.optim.Adam(
-            [
-                {
-                    'params': [p for n, p in model.named_parameters()
-                               if not any(nd in n for nd in NO_DECAY)],
-                },
-                {
-                    'params': [p for n, p in model.named_parameters()
-                               if any(nd in n for nd in NO_DECAY)],
-                }
-            ],
-            weight_decay=0,
-            lr=lr
-        ),
-        weight_decay=[1e-1, 0],
-        change_with_lr=True
+    return AdamW(
+        [
+            {
+                'params': [p for n, p in model.named_parameters()
+                           if not any(nd in n for nd in NO_DECAY)],
+                'weight_decay': 0.1
+            },
+            {
+                'params': [p for n, p in model.named_parameters()
+                           if any(nd in n for nd in NO_DECAY)],
+                'weight_decay': 0
+            }
+        ],
+        lr=lr
     )
 
 
