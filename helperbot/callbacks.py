@@ -63,7 +63,8 @@ class WandbCallback(Callback):
         if WANDB is False:
             raise ImportError(
                 "Please install 'wandb' before using WandbCallback.")
-        wandb.init(config=config, project=name)
+        # project name can only be in lower case
+        wandb.init(config=config, project=name.lower())
         self.watch_level = watch_level
         self.watch_freq = watch_freq
 
