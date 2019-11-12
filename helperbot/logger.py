@@ -29,7 +29,10 @@ class Logger:
         self.logger.propagate = False
         self.tbwriter = None
         if use_tensorboard:
-            from tensorboardX import SummaryWriter
+            try:
+                from torch.utils.tensorboard import SummaryWriter
+            except:
+                from tensorboardX import SummaryWriter
             # Tensorboard
             folder = str(
                 Path(log_dir) / "summaries" /

@@ -83,6 +83,7 @@ class WandbCallback(Callback):
         # Rename to avoid conflicts
         metrics["val_loss"] = metrics["loss"]
         del metrics["loss"]
+        # NOTE: remember to train one more step to sync the final eval metrics to the server
         wandb.log(metrics, step=bot.step)
 
 

@@ -12,7 +12,8 @@ setup(
         'tensorboardX>=1.8'
     ],
     extras_require={
-        'telegram':  ["python-telegram-bot>=12.0.0"]
+        'telegram':  ["python-telegram-bot>=12.0.0"],
+        'wandb': ["wandb>=0.8.14"]
     },
     classifiers=[  # Optional
         # How mature is this project? Common values are
