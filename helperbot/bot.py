@@ -2,7 +2,7 @@ import os
 import random
 import logging
 from pathlib import Path
-from typing import List, Tuple, Iterable, Union, Sequence
+from typing import List, Tuple, Iterable, Union, Sequence, Dict
 from dataclasses import dataclass, field, asdict
 
 import numpy as np
@@ -34,6 +34,26 @@ class StopTraining(Exception):
     pass
 
 
+def batch_to_device(batch, device):
+    results = []
+    for item in batch:
+        if isinstance(item, dict):
+            for key in item:
+                item[key] = item[key].to(device)
+            results.append(item)
+        else:
+            results.append(item.to(device))
+    return results
+
+
+def get_batch_size(batch, batch_dim):
+    if isinstance(batch[0], dict):
+        for key in batch[0]:
+            return batch[0][key].size(batch_dim)
+    else:
+        return batch[0].size(batch_dim)
+
+
 @dataclass
 class BaseBot:
     """Base Interface to Model Training and Inference"""
@@ -45,7 +65,7 @@ class BaseBot:
     name: str = "basebot"
     use_amp: bool = False
     clip_grad: float = 0
-    batch_idx: int = 0
+    batch_dim: int = 0
     device: Union[str, torch.device] = "cuda:0"
     log_dir: Path = Path("./data/cache/logs/")
     log_level: int = logging.INFO
@@ -103,7 +123,7 @@ class BaseBot:
             self.optimizer.zero_grad()
         return (
             batch_loss.data.cpu().item() * self.gradient_accumulation_steps,
-            input_tensors[0].size(self.batch_idx)
+            get_batch_size(input_tensors, self.batch_dim)
         )
 
     @staticmethod
@@ -169,7 +189,7 @@ class BaseBot:
                 self.logger.info(
                     "=" * 20 + "Epoch %d" + "=" * 20, epoch)
                 for *input_tensors, targets in self.train_loader:
-                    input_tensors = [x.to(self.device) for x in input_tensors]
+                    input_tensors = batch_to_device(input_tensors, self.device)
                     targets = targets.to(self.device)
                     input_tensors, targets = self.run_batch_inputs_callbacks(
                         input_tensors, targets)
@@ -204,12 +224,12 @@ class BaseBot:
         self.logger.debug("Evaluating...")
         with torch.set_grad_enabled(False):
             for *input_tensors, y_local in tqdm(loader, disable=not self.pbar):
-                input_tensors = [x.to(self.device) for x in input_tensors]
+                input_tensors = batch_to_device(input_tensors, self.device)
                 output = self.extract_prediction(self.model(*input_tensors))
                 batch_loss = self.criterion(
                     output, y_local.to(self.device))
                 losses.append(batch_loss.data.cpu().item())
-                weights.append(y_local.size(self.batch_idx))
+                weights.append(y_local.size(self.batch_dim))
                 # Save batch labels and predictions
                 preds.append(output.cpu())
                 ys.append(y_local.cpu())
@@ -231,7 +251,7 @@ class BaseBot:
         outputs, y_global = [], []
         with torch.set_grad_enabled(False):
             for *input_tensors, y_local in tqdm(loader, disable=not self.pbar):
-                input_tensors = [x.to(self.device) for x in input_tensors]
+                input_tensors = batch_to_device(input_tensors, self.device)
                 outputs.append(self.predict_batch(input_tensors).cpu())
                 if return_y:
                     y_global.append(y_local)
