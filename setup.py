@@ -1,9 +1,9 @@
 from distutils.core import setup
 
 setup(
-    name='PyTorchHelperBot',
-    version='0.3.1',
-    packages=['helperbot', ],
+    name='pytorch_helper_bot',
+    version='0.4.0',
+    packages=['pytorch_helper_bot'],
     install_requires=[
         'torch>=1.3.0',
         'dataclasses',
@@ -30,7 +30,7 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8'
     ],
 )

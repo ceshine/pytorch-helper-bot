@@ -9,7 +9,7 @@ import torch
 from torch import nn, cuda
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from helperbot import (
+from pytorch_helper_bot import (
     BaseBot, LearningRateSchedulerCallback,
     MixUpCallback, Top1Accuracy, TopKAccuracy,
     MovingAverageStatsTrackerCallback,
@@ -18,8 +18,8 @@ from helperbot import (
     TelegramCallback, WandbCallback,
     AdamW
 )
-from helperbot.loss import MixUpSoftmaxLoss
-from helperbot.lr_finder import LRFinder
+from pytorch_helper_bot.loss import MixUpSoftmaxLoss
+from pytorch_helper_bot.lr_finder import LRFinder
 
 from models import get_seresnet_model, get_densenet_model, get_efficientnet_model
 from dataset import TrainDataset, N_CLASSES, DATA_ROOT, build_dataframe_from_folder
