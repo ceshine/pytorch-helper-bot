@@ -1,5 +1,5 @@
 import warnings
-from typing import Tuple
+from typing import Tuple, Union
 
 import torch
 import numpy as np
@@ -61,12 +61,44 @@ class AUC(Metric):
 
     def __call__(self, truth: torch.Tensor, pred: torch.Tensor) -> Tuple[float, str]:
         auc_score = roc_auc_score(
-            truth.numpy(), torch.sigmoid(pred).numpy())
+            truth.long().numpy(), torch.sigmoid(pred).numpy())
         return auc_score * -1, f"{auc_score * 100:.2f}"
 
 
+class BinaryAccuracy(Metric):
+    """Accuracy for binary classification"""
+    name = "accuracy"
+
+    def __init__(self, threshold: Union[Tuple[float, float, float], float], logits: bool = False):
+        super().__init__()
+        self.threshold = threshold
+        self.logits = logits
+
+    def __call__(self, truth: torch.Tensor, pred: torch.Tensor) -> Tuple[float, str]:
+        truth = truth.long()
+        if self.logits:
+            pred = torch.sigmoid(pred)
+        if isinstance(self.threshold, float):
+            threshold = self.threshold
+            acc = (
+                truth == (pred > threshold).long()
+            ).sum() * 1.0 / len(truth)
+        else:
+            best_thres, best_acc = -1, -1
+            for thres in np.arange(self.threshold[0], self.threshold[1], self.threshold[2]):
+                acc_tmp = (
+                    truth == (pred > thres).long()
+                ).sum() * 1.0 / len(truth)
+                if acc_tmp > best_acc:
+                    best_thres = thres
+                    best_acc = acc_tmp
+            threshold = best_thres
+            acc = best_acc
+        return acc * -1, f"{acc * 100:.2f}% @ {threshold:.2f}"
+
+
 class Top1Accuracy(Metric):
-    """Accurcy for Multi-class or Binary classification"""
+    """Accuracy for Multi-class classification"""
     name = "accuracy"
 
     def __call__(self, truth: torch.Tensor, pred: torch.Tensor) -> Tuple[float, str]:
@@ -78,9 +110,10 @@ class Top1Accuracy(Metric):
 
 
 class TopKAccuracy(Metric):
-    """Top K Accurcy for Multi-class or Binary classification"""
+    """Top K Accuracy for Multi-class classification"""
 
     def __init__(self, k=1):
+        super().__init__()
         self.name = f"top_{k}_accuracy"
         self.k = k
 
