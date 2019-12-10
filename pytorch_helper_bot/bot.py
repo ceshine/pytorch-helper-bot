@@ -36,6 +36,8 @@ class StopTraining(Exception):
 
 def batch_to_device(batch, device):
     results = []
+    if isinstance(batch, dict):
+        return batch_to_device([batch], device)
     for item in batch:
         if isinstance(item, dict):
             for key in item:
@@ -222,7 +224,7 @@ class BaseBot:
         preds, ys = [], []
         losses, weights = [], []
         self.logger.debug("Evaluating...")
-        with torch.set_grad_enabled(False):
+        with torch.no_grad():
             for *input_tensors, y_local in tqdm(loader, disable=not self.pbar):
                 input_tensors = batch_to_device(input_tensors, self.device)
                 output = self.extract_prediction(self.model(*input_tensors))
@@ -249,7 +251,7 @@ class BaseBot:
     def predict(self, loader, *, return_y=False):
         self.model.eval()
         outputs, y_global = [], []
-        with torch.set_grad_enabled(False):
+        with torch.no_grad():
             for *input_tensors, y_local in tqdm(loader, disable=not self.pbar):
                 input_tensors = batch_to_device(input_tensors, self.device)
                 outputs.append(self.predict_batch(input_tensors).cpu())
