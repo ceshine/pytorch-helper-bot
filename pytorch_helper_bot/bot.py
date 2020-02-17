@@ -133,10 +133,6 @@ class BaseBot:
         """Assumes multiple outputs"""
         return output
 
-    @staticmethod
-    def transform_prediction(prediction):
-        return prediction
-
     def run_batch_inputs_callbacks(self, input_tensors, targets):
         for callback in self.callbacks:
             input_tensors, targets = callback.on_batch_inputs(

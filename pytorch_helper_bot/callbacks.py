@@ -1,4 +1,5 @@
 import socket
+from time import time
 from datetime import datetime
 from collections import deque, defaultdict
 from typing import Dict, Tuple, List, Optional
@@ -76,15 +77,15 @@ class WandbCallback(Callback):
         wandb.log({"train_loss": train_loss}, step=bot.step)
 
     def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
-        metrics = {
+        metrics_ = {
             metric_name: metric_value
             for metric_name, (metric_value, _) in metrics.items()
         }
         # Rename to avoid conflicts
-        metrics["val_loss"] = metrics["loss"]
-        del metrics["loss"]
+        metrics_["val_loss"] = metrics_["loss"]
+        del metrics_["loss"]
         # NOTE: remember to train one more step to sync the final eval metrics to the server
-        wandb.log(metrics, step=bot.step)
+        wandb.log(metrics_, step=bot.step)
 
 
 class TelegramCallback(Callback):
@@ -250,15 +251,23 @@ class MovingAverageStatsTrackerCallback(Callback):
         self.log_interval = log_interval
         self.reset()
 
+    def on_train_starts(self, bot: BaseBot):
+        self.timer = time()
+
     def on_step_ends(self, bot: BaseBot, train_loss, train_weight):
         self.train_losses.append(train_loss)
         self.train_weights.append(train_weight)
         if bot.step % self.log_interval == 0:
             train_loss_avg = np.average(
                 self.train_losses, weights=self.train_weights)
+            speed = (time() - self.timer) / self.log_interval
+            # reset timer
+            self.timer = time()
             bot.logger.info(
-                "Step %s: train %.6f lr: %.3e",
-                bot.step, train_loss_avg, bot.optimizer.param_groups[-1]['lr'])
+                f"Step %5d | loss {bot.loss_format} | lr: %.2e | %.3fs per step",
+                bot.step, train_loss_avg, bot.optimizer.param_groups[-1]['lr'],
+                speed
+            )
             bot.logger.tb_scalars(
                 "lr", bot.optimizer.param_groups[0]['lr'], bot.step)
             bot.logger.tb_scalars(
@@ -295,6 +304,7 @@ class MovingAverageStatsTrackerCallback(Callback):
         self.train_losses = deque(maxlen=self.avg_window)
         self.train_weights = deque(maxlen=self.avg_window)
         self.metrics = defaultdict(list)
+        self.timer: float = 0.0
         self.train_logs = []
 
 
