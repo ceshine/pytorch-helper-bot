@@ -304,7 +304,7 @@ class MovingAverageStatsTrackerCallback(Callback):
         self.train_losses = deque(maxlen=self.avg_window)
         self.train_weights = deque(maxlen=self.avg_window)
         self.metrics = defaultdict(list)
-        self.timer: float = 0.0
+        self.timer = 0.0
         self.train_logs = []
 
 

@@ -221,7 +221,7 @@ class BaseBot:
         losses, weights = [], []
         self.logger.debug("Evaluating...")
         with torch.no_grad():
-            for *input_tensors, y_local in tqdm(loader, disable=not self.pbar):
+            for *input_tensors, y_local in tqdm(loader, disable=not self.pbar, ncols=100):
                 input_tensors = batch_to_device(input_tensors, self.device)
                 output = self.extract_prediction(self.model(*input_tensors))
                 batch_loss = self.criterion(
@@ -248,7 +248,7 @@ class BaseBot:
         self.model.eval()
         outputs, y_global = [], []
         with torch.no_grad():
-            for *input_tensors, y_local in tqdm(loader, disable=not self.pbar):
+            for *input_tensors, y_local in tqdm(loader, disable=not self.pbar, ncols=100):
                 input_tensors = batch_to_device(input_tensors, self.device)
                 outputs.append(self.predict_batch(input_tensors).cpu())
                 if return_y:
