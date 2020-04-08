@@ -20,6 +20,7 @@ from pytorch_helper_bot import (
 )
 from pytorch_helper_bot.loss import MixUpSoftmaxLoss
 from pytorch_helper_bot.lr_finder import LRFinder
+from pytorch_helper_bot.optimizers import Lookahead, LookaheadCallback, RAdam
 
 from models import get_seresnet_model, get_densenet_model, get_efficientnet_model
 from dataset import TrainDataset, N_CLASSES, DATA_ROOT, build_dataframe_from_folder
@@ -66,22 +67,27 @@ class ImageClassificationBot(BaseBot):
         return output
 
 
-def get_optimizer(model, lr):
-    return AdamW(
-        [
-            {
-                'params': [p for n, p in model.named_parameters()
-                           if not any(nd in n for nd in NO_DECAY)],
-                'weight_decay': 0.1
-            },
-            {
-                'params': [p for n, p in model.named_parameters()
-                           if any(nd in n for nd in NO_DECAY)],
-                'weight_decay': 0
-            }
-        ],
-        lr=lr
-    )
+def get_optimizer(model, args):
+    param_groups = [
+        {
+            'params': [p for n, p in model.named_parameters()
+                       if not any(nd in n for nd in NO_DECAY)],
+            'weight_decay': 0.1
+        },
+        {
+            'params': [p for n, p in model.named_parameters()
+                       if any(nd in n for nd in NO_DECAY)],
+            'weight_decay': 0
+        }
+    ]
+    if args.radam:
+        optimizer = RAdam(param_groups, lr=args.lr)
+    else:
+        optimizer = AdamW(param_groups, lr=args.lr)
+    if args.lookahead_k > 0:
+        optimizer = Lookahead(
+            optimizer, alpha=args.lookahead_alpha, k=args.lookahead_k)
+    return optimizer
 
 
 def resume_training(args, model, train_loader, valid_loader):
@@ -107,7 +113,7 @@ def resume_training(args, model, train_loader, valid_loader):
 
 def train_from_scratch(args, model, train_loader, valid_loader, criterion):
     total_steps = len(train_loader) * args.epochs
-    optimizer = get_optimizer(model, args.lr)
+    optimizer = get_optimizer(model, args)
     if args.debug:
         print(
             "No decay:",
@@ -145,17 +151,8 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
                 start_at_epochs=break_points
             )
         ),
-        # TriangularLR(
-        #     optimizer, 100, ratio=4, steps_per_cycle=n_steps
-        # )
-        # GradualWarmupScheduler(
-        #     optimizer, 100, int(total_steps*0.25),
-        #     after_scheduler=CosineAnnealingLR(
-        #         optimizer,
-        #         total_steps - int(total_steps*0.25),
-        #     )
-        # )
         checkpoints,
+        LookaheadCallback(),  # this will be a dummy op when Lookahead is not used
         EarlyStoppingCallback(
             patience=8, min_improv=1e-2,
             monitor_metric="accuracy"
@@ -235,6 +232,9 @@ def main():
     arg('--amp', type=str, default='')
     arg('--size', type=int, default=192)
     arg('--debug', action='store_true')
+    arg('--radam', action='store_true')
+    arg('--lookahead-k', type=int, default=-1)
+    arg('--lookahead-alpha', type=float, default=0.5)
     arg('--from-checkpoint', type=str, default='')
     arg('--find-lr', action='store_true')
     args = parser.parse_args()

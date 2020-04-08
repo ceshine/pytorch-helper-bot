@@ -1,0 +1,116 @@
+[INFO][04/08/2020 15:42:43] SEED: 9293
+[INFO][04/08/2020 15:42:43] # of parameters: 27,770,943
+[INFO][04/08/2020 15:42:43] # of trainable parameters: 27,770,943
+[INFO][04/08/2020 15:42:43] Optimizer AdamW (
+Parameter Group 0
+    betas: (0.9, 0.999)
+    correct_bias: True
+    eps: 1e-06
+    initial_lr: 0.005
+    lr: 0.005
+    weight_decay: 0.1
+
+Parameter Group 1
+    betas: (0.9, 0.999)
+    correct_bias: True
+    eps: 1e-06
+    initial_lr: 0.005
+    lr: 0.005
+    weight_decay: 0
+)
+[INFO][04/08/2020 15:42:43] Batches per epoch: 201
+[INFO][04/08/2020 15:42:43] ====================Epoch 1====================
+[INFO][04/08/2020 15:42:54] Step    33 | loss 2.658496 | lr: 6.84e-04 | 0.336s per step
+[INFO][04/08/2020 15:43:05] Step    66 | loss 1.977924 | lr: 1.34e-03 | 0.319s per step
+[INFO][04/08/2020 15:43:15] Step    99 | loss 1.848403 | lr: 1.99e-03 | 0.308s per step
+[INFO][04/08/2020 15:43:17] Metrics at step 100:
+[INFO][04/08/2020 15:43:17] loss: 2.263205
+[INFO][04/08/2020 15:43:17] accuracy: 30.60%
+[INFO][04/08/2020 15:43:17] top_3_accuracy: 57.80%
+[INFO][04/08/2020 15:43:17] New low: inf improvement
+
+[INFO][04/08/2020 15:43:27] Step   132 | loss 1.870445 | lr: 2.64e-03 | 0.352s per step
+[INFO][04/08/2020 15:43:37] Step   165 | loss 1.760220 | lr: 3.30e-03 | 0.306s per step
+[INFO][04/08/2020 15:43:47] Step   198 | loss 1.636033 | lr: 3.95e-03 | 0.307s per step
+[INFO][04/08/2020 15:43:49] Metrics at step 200:
+[INFO][04/08/2020 15:43:49] loss: 1.789491
+[INFO][04/08/2020 15:43:49] accuracy: 44.80%
+[INFO][04/08/2020 15:43:49] top_3_accuracy: 74.60%
+[INFO][04/08/2020 15:43:49] New low: 0.142000 improvement
+
+[INFO][04/08/2020 15:43:49] ====================Epoch 2====================
+[INFO][04/08/2020 15:43:59] Step   231 | loss 1.621370 | lr: 4.60e-03 | 0.370s per step
+[INFO][04/08/2020 15:44:10] Step   264 | loss 1.557668 | lr: 5.00e-03 | 0.332s per step
+[INFO][04/08/2020 15:44:21] Step   297 | loss 1.510666 | lr: 4.96e-03 | 0.342s per step
+[INFO][04/08/2020 15:44:24] Metrics at step 300:
+[INFO][04/08/2020 15:44:24] loss: 1.433578
+[INFO][04/08/2020 15:44:24] accuracy: 51.00%
+[INFO][04/08/2020 15:44:24] top_3_accuracy: 83.40%
+[INFO][04/08/2020 15:44:24] New low: 0.062000 improvement
+
+[INFO][04/08/2020 15:44:33] Step   330 | loss 1.473748 | lr: 4.87e-03 | 0.361s per step
+[INFO][04/08/2020 15:44:44] Step   363 | loss 1.397015 | lr: 4.74e-03 | 0.322s per step
+[INFO][04/08/2020 15:44:55] Step   396 | loss 1.316954 | lr: 4.57e-03 | 0.332s per step
+[INFO][04/08/2020 15:44:58] Metrics at step 400:
+[INFO][04/08/2020 15:44:58] loss: 1.105047
+[INFO][04/08/2020 15:44:58] accuracy: 62.40%
+[INFO][04/08/2020 15:44:58] top_3_accuracy: 89.40%
+[INFO][04/08/2020 15:44:58] New low: 0.114000 improvement
+
+[INFO][04/08/2020 15:44:58] ====================Epoch 3====================
+[INFO][04/08/2020 15:45:08] Step   429 | loss 1.276125 | lr: 4.36e-03 | 0.398s per step
+[INFO][04/08/2020 15:45:19] Step   462 | loss 1.205850 | lr: 4.11e-03 | 0.326s per step
+[INFO][04/08/2020 15:45:30] Step   495 | loss 1.200380 | lr: 3.83e-03 | 0.326s per step
+[INFO][04/08/2020 15:45:32] Metrics at step 500:
+[INFO][04/08/2020 15:45:32] loss: 1.474888
+[INFO][04/08/2020 15:45:32] accuracy: 54.60%
+[INFO][04/08/2020 15:45:32] top_3_accuracy: 85.40%
+[INFO][04/08/2020 15:45:41] Step   528 | loss 1.125279 | lr: 3.53e-03 | 0.354s per step
+[INFO][04/08/2020 15:45:52] Step   561 | loss 1.067590 | lr: 3.21e-03 | 0.320s per step
+[INFO][04/08/2020 15:46:02] Step   594 | loss 1.076011 | lr: 2.87e-03 | 0.319s per step
+[INFO][04/08/2020 15:46:05] Metrics at step 600:
+[INFO][04/08/2020 15:46:05] loss: 0.891782
+[INFO][04/08/2020 15:46:05] accuracy: 70.60%
+[INFO][04/08/2020 15:46:05] top_3_accuracy: 90.00%
+[INFO][04/08/2020 15:46:06] New low: 0.082000 improvement
+
+[INFO][04/08/2020 15:46:07] ====================Epoch 4====================
+[INFO][04/08/2020 15:46:15] Step   627 | loss 1.001713 | lr: 2.53e-03 | 0.370s per step
+[INFO][04/08/2020 15:46:25] Step   660 | loss 0.949278 | lr: 2.19e-03 | 0.319s per step
+[INFO][04/08/2020 15:46:35] Step   693 | loss 0.951824 | lr: 1.85e-03 | 0.313s per step
+[INFO][04/08/2020 15:46:39] Metrics at step 700:
+[INFO][04/08/2020 15:46:39] loss: 0.661283
+[INFO][04/08/2020 15:46:39] accuracy: 78.00%
+[INFO][04/08/2020 15:46:39] top_3_accuracy: 94.60%
+[INFO][04/08/2020 15:46:39] New low: 0.074000 improvement
+
+[INFO][04/08/2020 15:46:47] Step   726 | loss 0.844796 | lr: 1.53e-03 | 0.358s per step
+[INFO][04/08/2020 15:46:58] Step   759 | loss 0.888523 | lr: 1.22e-03 | 0.317s per step
+[INFO][04/08/2020 15:47:08] Step   792 | loss 0.854711 | lr: 9.38e-04 | 0.316s per step
+[INFO][04/08/2020 15:47:12] Metrics at step 800:
+[INFO][04/08/2020 15:47:12] loss: 0.596513
+[INFO][04/08/2020 15:47:12] accuracy: 81.60%
+[INFO][04/08/2020 15:47:12] top_3_accuracy: 94.80%
+[INFO][04/08/2020 15:47:12] New low: 0.036000 improvement
+
+[INFO][04/08/2020 15:47:13] ====================Epoch 5====================
+[INFO][04/08/2020 15:47:20] Step   825 | loss 0.754099 | lr: 6.85e-04 | 0.369s per step
+[INFO][04/08/2020 15:47:31] Step   858 | loss 0.768528 | lr: 4.66e-04 | 0.313s per step
+[INFO][04/08/2020 15:47:41] Step   891 | loss 0.719531 | lr: 2.86e-04 | 0.316s per step
+[INFO][04/08/2020 15:47:45] Metrics at step 900:
+[INFO][04/08/2020 15:47:45] loss: 0.556528
+[INFO][04/08/2020 15:47:45] accuracy: 82.20%
+[INFO][04/08/2020 15:47:45] top_3_accuracy: 94.40%
+[INFO][04/08/2020 15:47:53] Step   924 | loss 0.701634 | lr: 1.48e-04 | 0.362s per step
+[INFO][04/08/2020 15:48:03] Step   957 | loss 0.687812 | lr: 5.41e-05 | 0.316s per step
+[INFO][04/08/2020 15:48:14] Step   990 | loss 0.664124 | lr: 6.27e-06 | 0.316s per step
+[INFO][04/08/2020 15:48:18] Metrics at step 1000:
+[INFO][04/08/2020 15:48:18] loss: 0.513402
+[INFO][04/08/2020 15:48:18] accuracy: 84.20%
+[INFO][04/08/2020 15:48:18] top_3_accuracy: 95.80%
+[INFO][04/08/2020 15:48:18] New low: 0.026000 improvement
+
+[INFO][04/08/2020 15:48:20] Training finished. Best step(s):
+[INFO][04/08/2020 15:48:20] loss: 0.513402 @ step 1000
+[INFO][04/08/2020 15:48:20] accuracy: 84.20% @ step 1000
+[INFO][04/08/2020 15:48:20] top_3_accuracy: 95.80% @ step 1000
