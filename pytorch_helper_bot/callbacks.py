@@ -36,6 +36,9 @@ class Callback:
     def on_epoch_ends(self, bot: BaseBot, epoch: int):
         return
 
+    def on_eval_starts(self, bot: BaseBot):
+        return
+
     def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
         return
 
@@ -60,7 +63,7 @@ class WandbCallback(Callback):
     Reference: https://github.com/wandb/client/raw/ef0911c47beebab0db8749d764802057d3480e69/wandb/fastai/__init__.py
     """
 
-    def __init__(self, config: Dict, name: str, watch_level: Optional[str] = None, watch_freq: int = 100):
+    def __init__(self, config: Dict, name: str, watch_level: Optional[str] = None, watch_freq: int = 100, log_freq: int = 2):
         if WANDB is False:
             raise ImportError(
                 "Please install 'wandb' before using WandbCallback.")
@@ -68,13 +71,15 @@ class WandbCallback(Callback):
         wandb.init(config=config, project=name.lower())
         self.watch_level = watch_level
         self.watch_freq = watch_freq
+        self.log_freq = log_freq
 
     def on_train_starts(self, bot: BaseBot):
         wandb.watch(bot.model, log=self.watch_level,
                     log_freq=self.watch_freq)
 
     def on_step_ends(self, bot: BaseBot, train_loss: float, train_weight: int):
-        wandb.log({"train_loss": train_loss}, step=bot.step)
+        if bot.step % self.log_freq == 0:
+            wandb.log({"train_loss": train_loss}, step=bot.step)
 
     def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
         metrics_ = {

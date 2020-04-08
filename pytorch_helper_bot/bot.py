@@ -155,6 +155,10 @@ class BaseBot:
         for callback in self.callbacks:
             callback.on_epoch_ends(self, epoch)
 
+    def run_eval_starts_callbacks(self):
+        for callback in self.callbacks:
+            callback.on_eval_starts(self)
+
     def run_eval_ends_callbacks(self, metrics):
         for callback in self.callbacks:
             callback.on_eval_ends(self, metrics)
@@ -201,6 +205,8 @@ class BaseBot:
                         (not callable(checkpoint_interval) and
                          self.step % checkpoint_interval == 0)
                     ):
+                        # Eval starts
+                        self.run_eval_starts_callbacks()
                         metrics = self.eval(self.valid_loader)
                         # Eval ends
                         self.run_eval_ends_callbacks(metrics)
