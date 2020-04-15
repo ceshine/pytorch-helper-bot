@@ -110,7 +110,10 @@ class BaseBot:
             self.extract_prediction(output), target
         ) / self.gradient_accumulation_steps
         if self.use_amp:
-            with amp.scale_loss(batch_loss, self.optimizer) as scaled_loss:
+            with amp.scale_loss(
+                batch_loss, self.optimizer,
+                delay_unscale=self.step % self.gradient_accumulation_steps != 0
+            ) as scaled_loss:
                 scaled_loss.backward()
         else:
             batch_loss.backward()
