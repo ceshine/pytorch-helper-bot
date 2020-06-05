@@ -1,3 +1,4 @@
+import weakref
 from functools import wraps
 from typing import Sequence
 
@@ -32,7 +33,7 @@ class BaseLRScheduler(_LRScheduler):
         if last_epoch == -1:
             for group in optimizer.param_groups:
                 group.setdefault('initial_lr', group['lr'])
-            last_epoch = 0
+            # last_epoch = 0
         else:
             for i, group in enumerate(optimizer.param_groups):
                 if 'initial_lr' not in group:
@@ -46,20 +47,37 @@ class BaseLRScheduler(_LRScheduler):
         # Following https://github.com/pytorch/pytorch/issues/20124
         # We would like to ensure that `lr_scheduler.step()` is called after
         # `optimizer.step()`
+        def with_counter(method):
+            if getattr(method, '_with_counter', False):
+                # `optimizer.step()` has already been replaced, return.
+                return method
 
-        def with_counter(func, opt):
+            # Keep a weak reference to the optimizer instance to prevent
+            # cyclic references.
+            instance_ref = weakref.ref(method.__self__)
+            # Get the unbound method for the same purpose.
+            func = method.__func__
+            cls = instance_ref().__class__
+            del method
+
             @wraps(func)
             def wrapper(*args, **kwargs):
-                opt._step_count += 1
-                return func(*args, **kwargs)
+                instance = instance_ref()
+                instance._step_count += 1
+                wrapped = func.__get__(instance, cls)
+                return wrapped(*args, **kwargs)
+
+            # Note that the returned function here is no longer a bound method,
+            # so attributes like `__func__` and `__self__` no longer exist.
             wrapper._with_counter = True
             return wrapper
-        self.optimizer.step = with_counter(self.optimizer.step, self.optimizer)
+
+        self.optimizer.step = with_counter(self.optimizer.step)
         self.optimizer._step_count = 0
         self._step_count = 0
 
         # Start from last_epoch
-        self.step(last_epoch)
+        self.step()
 
     def switch_optimizer(self, optimizer):
         self.optimizer = optimizer
@@ -219,7 +237,7 @@ class MultiStageScheduler:
         self.schedulers = schedulers[idx]
         self.start_at_epochs = start_at_epochs[idx]
         self.last_epoch = last_epoch
-        self.step(last_epoch)
+        self.step()
 
     def step(self, epoch=None):
         if epoch is None:
@@ -228,7 +246,8 @@ class MultiStageScheduler:
             self.last_epoch = epoch
         for scheduler, starting_epoch in zip(self.schedulers, self.start_at_epochs):
             if self.last_epoch >= starting_epoch:
-                return scheduler.step(self.last_epoch - starting_epoch)
+                scheduler.last_epoch = self.last_epoch - starting_epoch
+                return scheduler.step()
 
     def switch_optimizer(self, optimizer):
         for scheduler in self.schedulers:
