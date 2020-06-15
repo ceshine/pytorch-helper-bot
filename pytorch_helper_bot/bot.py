@@ -196,7 +196,7 @@ class BaseBot:
                     "=" * 20 + "Epoch %d" + "=" * 20, epoch)
                 for *input_tensors, targets in self.train_loader:
                     input_tensors = batch_to_device(input_tensors, self.device)
-                    targets = targets.to(self.device)
+                    targets = batch_to_device([targets], self.device)[0]
                     input_tensors, targets = self.run_batch_inputs_callbacks(
                         input_tensors, targets)
                     self.step += 1
