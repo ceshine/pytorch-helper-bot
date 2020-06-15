@@ -120,7 +120,8 @@ class BaseBot:
         if self.step % self.gradient_accumulation_steps == 0:
             if self.clip_grad > 0:
                 if not self.use_amp:
-                    clip_grad_norm_(self.model.parameters(), self.clip_grad)
+                    for param_group in self.optimizer.param_groups:
+                        clip_grad_norm_(param_group["params"], self.clip_grad)
                 else:
                     clip_grad_norm_(amp.master_params(
                         self.optimizer), self.clip_grad)
