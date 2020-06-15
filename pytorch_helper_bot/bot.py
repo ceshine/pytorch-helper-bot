@@ -69,7 +69,7 @@ class BaseBot:
     clip_grad: float = 0
     batch_dim: int = 0
     device: Union[str, torch.device] = "cuda:0"
-    log_dir: Path = Path("./data/cache/logs/")
+    log_dir: Path = Path("/tmp/pytorch_helper_bot_logs/")
     log_level: int = logging.INFO
     loss_format: str = "%.8f"
     use_tensorboard: bool = False
