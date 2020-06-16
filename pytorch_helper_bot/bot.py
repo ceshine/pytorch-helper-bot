@@ -56,6 +56,17 @@ def get_batch_size(batch, batch_dim):
         return batch[0].size(batch_dim)
 
 
+def concatenate_batches(batches):
+    if isinstance(batches[0], dict):
+        results = {}
+        for key in batches[0].keys():
+            results[key] = torch.cat([
+                x[key] for x in batches
+            ])
+        return results
+    return torch.cat(batches)
+
+
 @dataclass
 class BaseBot:
     """Base Interface to Model Training and Inference"""
@@ -195,10 +206,10 @@ class BaseBot:
                 self.logger.info(
                     "=" * 20 + "Epoch %d" + "=" * 20, epoch)
                 for *input_tensors, targets in self.train_loader:
-                    input_tensors = batch_to_device(input_tensors, self.device)
-                    targets = batch_to_device([targets], self.device)[0]
                     input_tensors, targets = self.run_batch_inputs_callbacks(
                         input_tensors, targets)
+                    input_tensors = batch_to_device(input_tensors, self.device)
+                    targets = batch_to_device([targets], self.device)[0]
                     self.step += 1
                     train_loss, train_weight = self.train_one_step(
                         input_tensors, targets)
@@ -232,18 +243,21 @@ class BaseBot:
         self.logger.debug("Evaluating...")
         with torch.no_grad():
             for *input_tensors, y_local in tqdm(loader, disable=not self.pbar, ncols=100):
+                input_tensors, y_local = self.run_batch_inputs_callbacks(
+                    input_tensors, y_local)
                 input_tensors = batch_to_device(input_tensors, self.device)
+                y_local = batch_to_device([y_local], self.device)[0]
                 output = self.extract_prediction(self.model(*input_tensors))
                 batch_loss = self.criterion(
-                    output, y_local.to(self.device))
+                    output, y_local)
                 losses.append(batch_loss.data.cpu().item())
-                weights.append(y_local.size(self.batch_dim))
+                weights.append(output.size(self.batch_dim))
                 # Save batch labels and predictions
                 preds.append(output.cpu())
-                ys.append(y_local.cpu())
+                ys.append(batch_to_device([y_local], "cpu")[0])
         loss = np.average(losses, weights=weights)
         metrics = {"loss": (loss, self.loss_format % loss)}
-        global_ys, global_preds = torch.cat(ys), torch.cat(preds)
+        global_ys, global_preds = concatenate_batches(ys), torch.cat(preds)
         for metric in self.metrics:
             metric_loss, metric_string = metric(global_ys, global_preds)
             metrics[metric.name] = (metric_loss, metric_string)
