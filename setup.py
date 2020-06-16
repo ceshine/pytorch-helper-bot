@@ -2,10 +2,10 @@ from distutils.core import setup
 
 setup(
     name='pytorch_helper_bot',
-    version='0.5.0',
+    version='0.6.0',
     packages=['pytorch_helper_bot'],
     install_requires=[
-        'torch>=1.3.0',
+        'torch>=1.5.0',
         'dataclasses',
         'tqdm>=4.29.1',
         'scikit-learn>=0.21.2',
