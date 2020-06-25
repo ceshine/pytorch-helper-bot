@@ -148,10 +148,10 @@ class BaseBot:
         """Assumes multiple outputs"""
         return output
 
-    def run_batch_inputs_callbacks(self, input_tensors, targets):
+    def run_batch_inputs_callbacks(self, input_tensors, targets, is_eval):
         for callback in self.callbacks:
             input_tensors, targets = callback.on_batch_inputs(
-                self, input_tensors, targets)
+                self, input_tensors, targets, is_eval)
         return input_tensors, targets
 
     def run_step_ends_callbacks(self, train_loss, train_weight):
@@ -207,7 +207,7 @@ class BaseBot:
                     "=" * 20 + "Epoch %d" + "=" * 20, epoch)
                 for *input_tensors, targets in self.train_loader:
                     input_tensors, targets = self.run_batch_inputs_callbacks(
-                        input_tensors, targets)
+                        input_tensors, targets, is_eval=False)
                     input_tensors = batch_to_device(input_tensors, self.device)
                     targets = batch_to_device([targets], self.device)[0]
                     self.step += 1
@@ -244,7 +244,7 @@ class BaseBot:
         with torch.no_grad():
             for *input_tensors, y_local in tqdm(loader, disable=not self.pbar, ncols=100):
                 input_tensors, y_local = self.run_batch_inputs_callbacks(
-                    input_tensors, y_local)
+                    input_tensors, y_local, is_eval=True)
                 input_tensors = batch_to_device(input_tensors, self.device)
                 y_local = batch_to_device([y_local], self.device)[0]
                 output = self.extract_prediction(self.model(*input_tensors))

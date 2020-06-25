@@ -24,7 +24,7 @@ __all__ = [
 
 
 class Callback:
-    def on_batch_inputs(self, bot: BaseBot, input_tensors: torch.Tensor, targets: torch.Tensor):
+    def on_batch_inputs(self, bot: BaseBot, input_tensors: torch.Tensor, targets: torch.Tensor, is_eval: bool):
         return input_tensors, targets
 
     def on_train_starts(self, bot: BaseBot):
@@ -164,7 +164,9 @@ class MixUpCallback(Callback):
         self.alpha = alpha
         self.softmax_target = softmax_target
 
-    def on_batch_inputs(self, bot: BaseBot, input_tensors, targets):
+    def on_batch_inputs(self, bot: BaseBot, input_tensors, targets, is_eval: bool):
+        if is_eval is True:
+            return input_tensors, targets
         batch = input_tensors[0]
         permuted_idx = torch.randperm(batch.size(0)).to(batch.device)
         lambd = np.random.beta(self.alpha, self.alpha, batch.size(0))
