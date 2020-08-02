@@ -299,6 +299,8 @@ class BaseBot:
             state_dict["optimizer"] = optimizer.state_dict()
             for callback in state_dict["callbacks"]:
                 callback.on_save_checkpoint()
+            if self.use_amp:
+                state_dict["amp"] = amp.state_dict()
             self.model = model
             self.optimizer = optimizer
             return state_dict
@@ -314,4 +316,9 @@ class BaseBot:
         state_dict["model"] = model
         for callback in state_dict["callbacks"]:
             callback.on_load_checkpoint(optimizer=state_dict["optimizer"])
+        if "amp" in state_dict:
+            if APEX_AVAILABLE:
+                amp.load_state_dict(state_dict["amp"])
+                assert state_dict["use_amp"] is True
+            del state_dict["amp"]
         return cls(**state_dict)
