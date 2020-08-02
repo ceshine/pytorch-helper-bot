@@ -249,8 +249,7 @@ class BaseBot:
                 input_tensors = batch_to_device(input_tensors, self.device)
                 y_local = batch_to_device([y_local], self.device)[0]
                 output = self.extract_prediction(self.model(*input_tensors))
-                batch_loss = self.criterion(
-                    output, y_local)
+                batch_loss = self.criterion(output, y_local)
                 losses.append(batch_loss.data.cpu().item())
                 weights.append(output.size(self.batch_dim))
                 # Save batch labels and predictions

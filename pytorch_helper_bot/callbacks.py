@@ -72,6 +72,11 @@ class WandbCallback(Callback):
         self.watch_level = watch_level
         self.watch_freq = watch_freq
         self.log_freq = log_freq
+        self.project = name.lower()
+        self.config = config
+
+    # def on_load_checkpoint(self, **kwargs):
+    #     wandb.init(config=self.config, project=self.project)
 
     def on_train_starts(self, bot: BaseBot):
         wandb.watch(bot.model, log=self.watch_level,
