@@ -76,8 +76,8 @@ class BaseLRScheduler(_LRScheduler):
         self.optimizer._step_count = 0
         self._step_count = 0
 
-        # # Start from last_epoch
-        # self.step()
+        # Start from last_epoch
+        self.step()
 
     def switch_optimizer(self, optimizer):
         self.optimizer = optimizer
@@ -237,7 +237,7 @@ class MultiStageScheduler:
         self.schedulers = schedulers[idx]
         self.start_at_epochs = start_at_epochs[idx]
         self.last_epoch = last_epoch
-        # self.step()
+        self.step()
 
     def step(self, epoch=None):
         if epoch is None:
