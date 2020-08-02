@@ -185,8 +185,9 @@ class BaseBot:
             if self.total_steps is None:
                 raise ValueError("n_steps and total_steps cannot both be None")
             n_steps = self.total_steps - self.step
-        elif self.total_steps is None:
+        elif total_steps is None:
             self.total_steps = n_steps
+        assert self.total_steps != 0, f"{total_steps}, {n_steps}"
         target_step = self.step + n_steps
         self.optimizer.zero_grad()
         epoch = 0
