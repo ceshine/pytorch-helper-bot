@@ -76,7 +76,7 @@ class BaseBot:
     model: torch.nn.Module
     optimizer: torch.optim.Optimizer
     name: str = "basebot"
-    use_amp: bool = False
+    use_amp: Union[bool, str] = False
     clip_grad: float = 0
     batch_dim: int = 0
     device: Union[str, torch.device] = "cuda:0"
@@ -319,6 +319,6 @@ class BaseBot:
         if "amp" in state_dict:
             if APEX_AVAILABLE:
                 amp.load_state_dict(state_dict["amp"])
-                assert state_dict["use_amp"] is True
+                assert state_dict["use_amp"]
             del state_dict["amp"]
         return cls(**state_dict)
