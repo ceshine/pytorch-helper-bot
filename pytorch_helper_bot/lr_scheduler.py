@@ -112,11 +112,13 @@ class LinearLR(_LRScheduler):
         super(LinearLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        current_epoch = self.last_epoch + 1
+        current_epoch = self.last_epoch
         if self.upward:
             progress = 1 - current_epoch / self.total_epochs  # 1 to 0
         else:
             progress = current_epoch / self.total_epochs  # 1 to 0
+        # safety measure
+        progress = max(min(progress, 1.), 0.)
         return [
             base_lr - progress * (base_lr - self.min_lr_ratio * base_lr)
             for base_lr in self.base_lrs
