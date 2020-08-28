@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from transforms import tensor_transform
 
 
-N_CLASSES = 1103
+N_CLASSES = 10
 DATA_ROOT = Path('./data')
 
 
