@@ -220,6 +220,24 @@ def find_lr(args, model, train_loader, criterion):
     print("Learning rate probing completed. Check `lr_find.png` for result.")
 
 
+def get_model(arch: str):
+    if arch == 'seresnext50':
+        return get_seresnet_model(
+            arch="se_resnext50_32x4d",
+            n_classes=N_CLASSES, pretrained=False)
+    elif arch == 'seresnext101':
+        return get_seresnet_model(
+            arch="se_resnext101_32x4d",
+            n_classes=N_CLASSES, pretrained=False)
+    elif arch.startswith("densenet"):
+        return get_densenet_model(arch=arch)
+    elif arch.startswith("efficientnet"):
+        return get_efficientnet_model(
+            arch=arch, pretrained=False)
+    else:
+        raise ValueError("No such model")
+
+
 def main():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
@@ -243,21 +261,7 @@ def main():
     valid_dir = DATA_ROOT / 'val'
 
     use_cuda = cuda.is_available()
-    if args.arch == 'seresnext50':
-        model = get_seresnet_model(
-            arch="se_resnext50_32x4d",
-            n_classes=N_CLASSES, pretrained=False)
-    elif args.arch == 'seresnext101':
-        model = get_seresnet_model(
-            arch="se_resnext101_32x4d",
-            n_classes=N_CLASSES, pretrained=False)
-    elif args.arch.startswith("densenet"):
-        model = get_densenet_model(arch=args.arch)
-    elif args.arch.startswith("efficientnet"):
-        model = get_efficientnet_model(
-            arch=args.arch, pretrained=False)
-    else:
-        raise ValueError("No such model")
+    model = get_model(args.arch)
     if use_cuda:
         model = model.cuda()
     criterion = MixUpSoftmaxLoss(nn.CrossEntropyLoss())
