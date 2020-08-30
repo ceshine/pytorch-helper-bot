@@ -116,7 +116,10 @@ class BaseBot:
     def train_one_step(self, input_tensors, target):
         self.model.train()
         assert self.model.training
-        output = self.model(*input_tensors)
+        if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
+            output = self.model(**input_tensors[0])
+        else:
+            output = self.model(*input_tensors)
         batch_loss = self.criterion(
             self.extract_prediction(output), target
         ) / self.gradient_accumulation_steps
@@ -248,7 +251,12 @@ class BaseBot:
                     input_tensors, y_local, is_eval=True)
                 input_tensors = batch_to_device(input_tensors, self.device)
                 y_local = batch_to_device([y_local], self.device)[0]
-                output = self.extract_prediction(self.model(*input_tensors))
+                if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
+                    output = self.extract_prediction(
+                        self.model(**input_tensors[0]))
+                else:
+                    output = self.extract_prediction(
+                        self.model(*input_tensors))
                 batch_loss = self.criterion(output, y_local)
                 losses.append(batch_loss.data.cpu().item())
                 weights.append(output.size(self.batch_dim))
