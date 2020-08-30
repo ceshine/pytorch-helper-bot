@@ -296,7 +296,8 @@ class BaseBot:
         return outputs
 
     def load_model(self, target_path):
-        self.model.load_state_dict(torch.load(target_path)["model"])
+        self.model.load_state_dict(torch.load(
+            target_path, map_location="cpu")["model"])
 
     def state_dict(self):
         """States needed to resume training from this point"""
