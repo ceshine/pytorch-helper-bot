@@ -297,20 +297,32 @@ class BaseBot:
     def state_dict(self):
         """States needed to resume training from this point"""
         with torch.no_grad():
+            # Do not copy these two (to save memory)
             model, self.model = self.model, None
             optimizer, self.optimizer = self.optimizer, None
-            state_dict = asdict(self)
             # drop loader to potentially save disk space
-            state_dict["train_loader"] = None
-            state_dict["valid_loader"] = None
+            train_loader, self.train_loader = self.train_loader, None
+            valid_loader, self.valid_loader = self.valid_loader, None
+            # Avoid copying optimizers
+            for callback in self.callbacks:
+                callback.on_save_checkpoint()
+            # Uncomment to show debug messages:
+            # from dataclasses import fields
+            # for field in fields(self):
+            #     print(field.name)
+            #     print(getattr(self, field.name))
+            state_dict = asdict(self)
             state_dict["model"] = model.state_dict()
             state_dict["optimizer"] = optimizer.state_dict()
-            for callback in state_dict["callbacks"]:
-                callback.on_save_checkpoint()
             if self.use_amp:
                 state_dict["amp"] = amp.state_dict()
+            # Restoring stuffs
+            for callback in self.callbacks:
+                callback.on_load_checkpoint(optimizer=optimizer)
             self.model = model
             self.optimizer = optimizer
+            self.train_loader = train_loader
+            self.valid_loader = valid_loader
             return state_dict
 
     @classmethod
