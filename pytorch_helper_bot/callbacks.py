@@ -267,6 +267,9 @@ class MovingAverageStatsTrackerCallback(Callback):
         self.timer = time()
 
     def on_step_ends(self, bot: BaseBot, train_loss, train_weight):
+        if np.isnan(train_loss):
+            # skip
+            return
         self.train_losses.append(train_loss)
         self.train_weights.append(train_weight)
         if bot.step % self.log_interval == 0:

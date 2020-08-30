@@ -123,24 +123,28 @@ class BaseBot:
         batch_loss = self.criterion(
             self.extract_prediction(output), target
         ) / self.gradient_accumulation_steps
-        if self.use_amp:
-            with amp.scale_loss(
-                batch_loss, self.optimizer,
-                delay_unscale=self.step % self.gradient_accumulation_steps != 0
-            ) as scaled_loss:
-                scaled_loss.backward()
+        if torch.isnan(batch_loss):
+            self.logger.warning("NAN Loss dectected! Skipping this step...")
         else:
-            batch_loss.backward()
-        if self.step % self.gradient_accumulation_steps == 0:
-            if self.clip_grad > 0:
-                if not self.use_amp:
-                    for param_group in self.optimizer.param_groups:
-                        clip_grad_norm_(param_group["params"], self.clip_grad)
-                else:
-                    clip_grad_norm_(amp.master_params(
-                        self.optimizer), self.clip_grad)
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+            if self.use_amp:
+                with amp.scale_loss(
+                    batch_loss, self.optimizer,
+                    delay_unscale=self.step % self.gradient_accumulation_steps != 0
+                ) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                batch_loss.backward()
+            if self.step % self.gradient_accumulation_steps == 0:
+                if self.clip_grad > 0:
+                    if not self.use_amp:
+                        for param_group in self.optimizer.param_groups:
+                            clip_grad_norm_(
+                                param_group["params"], self.clip_grad)
+                    else:
+                        clip_grad_norm_(amp.master_params(
+                            self.optimizer), self.clip_grad)
+                self.optimizer.step()
+                self.optimizer.zero_grad()
         return (
             batch_loss.data.cpu().item() * self.gradient_accumulation_steps,
             get_batch_size(input_tensors, self.batch_dim)
