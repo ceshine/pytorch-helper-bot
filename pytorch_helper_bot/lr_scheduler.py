@@ -87,7 +87,7 @@ class BaseLRScheduler(_LRScheduler):
         self.optimizer = None
 
 
-class LinearLR(_LRScheduler):
+class LinearLR(BaseLRScheduler):
     """Linearly increases or decrease the learning rate between two boundaries over a number of
     iterations.
     """
@@ -239,13 +239,16 @@ class MultiStageScheduler:
         self.schedulers = schedulers[idx]
         self.start_at_epochs = start_at_epochs[idx]
         self.last_epoch = last_epoch
-        self.step()
+        # DO NO UNCOMMENT!
+        # The schedulers have already been initialized so step() is
+        # unnecessary here
+        # self.step()
 
     def step(self, epoch=None):
         if epoch is None:
             self.last_epoch = self.last_epoch + 1
         else:
-            self.last_epoch = epoch
+            self.last_epoch = epoch - 1
         for scheduler, starting_epoch in zip(self.schedulers, self.start_at_epochs):
             if self.last_epoch >= starting_epoch:
                 scheduler.last_epoch = self.last_epoch - starting_epoch
