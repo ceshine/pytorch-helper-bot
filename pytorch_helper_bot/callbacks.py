@@ -63,12 +63,14 @@ class WandbCallback(Callback):
     Reference: https://github.com/wandb/client/raw/ef0911c47beebab0db8749d764802057d3480e69/wandb/fastai/__init__.py
     """
 
-    def __init__(self, config: Dict, name: str, watch_level: Optional[str] = None, watch_freq: int = 100, log_freq: int = 2):
+    def __init__(
+            self, config: Dict, name: str, run_name: Optional[str] = None,
+            watch_level: Optional[str] = None, watch_freq: int = 100, log_freq: int = 2):
         if WANDB is False:
             raise ImportError(
                 "Please install 'wandb' before using WandbCallback.")
         # project name can only be in lower case
-        wandb.init(config=config, project=name.lower())
+        wandb.init(config=config, project=name.lower(), name=run_name)
         self.watch_level = watch_level
         self.watch_freq = watch_freq
         self.log_freq = log_freq

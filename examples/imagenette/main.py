@@ -164,7 +164,8 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
             },
             name="Imagenatte",
             watch_freq=200,
-            watch_level="gradients"
+            watch_level="gradients",
+            run_name=args.run_name if args.run_name else None
         )
     ]
     if args.mixup_alpha:
@@ -251,6 +252,7 @@ def main():
     arg('--size', type=int, default=192)
     arg('--debug', action='store_true')
     arg('--radam', action='store_true')
+    arg('--run-name', type=str, default='')
     arg('--lookahead-k', type=int, default=-1)
     arg('--lookahead-alpha', type=float, default=0.5)
     arg('--from-checkpoint', type=str, default='')
