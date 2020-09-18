@@ -4,3 +4,4 @@ from .lr_scheduler import *
 from .weight_decay import *
 from .metrics import Metric, AUC, FBeta, Top1Accuracy, TopKAccuracy
 from .callbacks import *
+from torch.optim.lr_scheduler import CosineAnnealingLR

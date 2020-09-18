@@ -24,6 +24,7 @@ random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
+torch.backends.cudnn.benchmark = True
 
 if os.environ.get("DETERMINISTIC", None):
     torch.backends.cudnn.deterministic = True
@@ -91,6 +92,7 @@ class BaseBot:
     metrics: Sequence = ()
     callbacks: Sequence = ()
     pbar: bool = False
+    expand_dict_inputs: bool = True
 
     def __post_init__(self):
         assert (self.use_amp and APEX_AVAILABLE) or (not self.use_amp)
@@ -117,7 +119,10 @@ class BaseBot:
         self.model.train()
         assert self.model.training
         if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
-            output = self.model(**input_tensors[0])
+            if self.expand_dict_inputs:
+                output = self.model(**input_tensors[0])
+            else:
+                output = self.model(input_tensors[0])
         else:
             output = self.model(*input_tensors)
         batch_loss = self.criterion(
@@ -256,8 +261,12 @@ class BaseBot:
                 input_tensors = batch_to_device(input_tensors, self.device)
                 y_local = batch_to_device([y_local], self.device)[0]
                 if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
-                    output = self.extract_prediction(
-                        self.model(**input_tensors[0]))
+                    if self.expand_dict_inputs:
+                        output = self.extract_prediction(
+                            self.model(**input_tensors[0]))
+                    else:
+                        output = self.extract_prediction(
+                            self.model(input_tensors[0]))
                 else:
                     output = self.extract_prediction(
                         self.model(*input_tensors))
@@ -277,7 +286,15 @@ class BaseBot:
 
     def predict_batch(self, input_tensors):
         self.model.eval()
-        tmp = self.model(*input_tensors)
+        if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
+            if self.expand_dict_inputs:
+                tmp = self.extract_prediction(
+                    self.model(**input_tensors[0]))
+            else:
+                tmp = self.extract_prediction(
+                    self.model(input_tensors[0]))
+        else:
+            tmp = self.model(*input_tensors)
         return self.extract_prediction(tmp)
 
     def predict(self, loader, *, return_y=False):
