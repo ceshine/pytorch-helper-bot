@@ -44,6 +44,10 @@ def batch_to_device(batch, device):
             for key in item:
                 item[key] = item[key].to(device)
             results.append(item)
+        elif isinstance(item, tuple):
+            results.append(tuple(
+                x.to(device) for x in item
+            ))
         else:
             results.append(item.to(device))
     return results
@@ -53,8 +57,10 @@ def get_batch_size(batch, batch_dim):
     if isinstance(batch[0], dict):
         for key in batch[0]:
             return batch[0][key].size(batch_dim)
-    else:
+    elif isinstance(batch[0], torch.Tensor):
         return batch[0].size(batch_dim)
+    else:
+        return len(batch[0])
 
 
 def concatenate_batches(batches):
