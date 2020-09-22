@@ -3,13 +3,14 @@ from functools import wraps
 from typing import Sequence
 
 import numpy as np
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, CosineAnnealingLR as CosineAnnealingLR_
 from torch.optim import Optimizer
 
 __all__ = [
     "BaseLRScheduler", "LinearLR",
     "ExponentialLR", "TriangularLR",
-    "GradualWarmupScheduler", "MultiStageScheduler"
+    "GradualWarmupScheduler", "MultiStageScheduler",
+    "CosineAnnealingScheduler"
 ]
 
 
@@ -23,6 +24,14 @@ class BaseLRScheduler(_LRScheduler):
             try:
                 from apex.fp16_utils.fp16_optimizer import FP16_Optimizer
                 if isinstance(optimizer, FP16_Optimizer):
+                    flag = True
+            except ModuleNotFoundError:
+                pass
+            try:
+                from deepspeed.runtime.fp16.fused_optimizer import FP16_Optimizer
+                from deepspeed.ops.adam import DeepSpeedCPUAdam
+                from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
+                if isinstance(optimizer, (FP16_Optimizer, DeepSpeedCPUAdam, FP16_DeepSpeedZeroOptimizer)):
                     flag = True
             except ModuleNotFoundError:
                 pass
@@ -85,6 +94,10 @@ class BaseLRScheduler(_LRScheduler):
 
     def clear_optimizer(self):
         self.optimizer = None
+
+
+class CosineAnnealingScheduler(CosineAnnealingLR_, BaseLRScheduler):
+    pass
 
 
 class LinearLR(BaseLRScheduler):

@@ -284,7 +284,9 @@ class BaseBot:
                 ys.append(batch_to_device([y_local], "cpu")[0])
         loss = np.average(losses, weights=weights)
         metrics = {"loss": (loss, self.loss_format % loss)}
-        global_ys, global_preds = concatenate_batches(ys), torch.cat(preds)
+        global_ys, global_preds = (
+            concatenate_batches(ys), torch.cat(preds).float()
+        )
         for metric in self.metrics:
             metric_loss, metric_string = metric(global_ys, global_preds)
             metrics[metric.name] = (metric_loss, metric_string)
@@ -370,3 +372,34 @@ class BaseBot:
                 assert state_dict["use_amp"]
             del state_dict["amp"]
         return cls(**state_dict)
+
+
+class DeepSpeedBot(BaseBot):
+    def train_one_step(self, input_tensors, target):
+        self.model.train()
+        assert self.model.training
+        if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
+            if self.expand_dict_inputs:
+                output = self.model(**input_tensors[0])
+            else:
+                output = self.model(input_tensors[0])
+        else:
+            output = self.model(*input_tensors)
+        batch_loss = self.criterion(
+            self.extract_prediction(output), target
+        )  # / self.gradient_accumulation_steps
+        if torch.isnan(batch_loss):
+            self.logger.warning("NAN Loss dectected! Skipping this step...")
+        else:
+            self.model.backward(batch_loss)
+            self.model.step()
+        return (
+            batch_loss.data.cpu().item() * self.gradient_accumulation_steps,
+            get_batch_size(input_tensors, self.batch_dim)
+        )
+
+    def state_dict(self):
+        raise NotImplementedError()
+
+    def load_state_dict(self):
+        raise NotImplementedError()
