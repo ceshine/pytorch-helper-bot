@@ -130,15 +130,22 @@ def main(arch="bert-base-uncased", config="gpu.json"):
     args = Object()
     setattr(args, "local_rank", 0)
     setattr(args, "deepspeed_config", config)
-    if config == "cpu.json":
-        # from deepspeed.ops.adam import DeepSpeedCPUAdam
-        # optimizer = DeepSpeedCPUAdam(param_groups, lr=1e-3)
-        model, optimizer, _, _ = deepspeed.initialize(
-            args=args,
-            model=model,
-            model_parameters=model.parameters()
-            # optimizer=optimizer
-        )
+    if config[:3] == "cpu":
+        if "optimizer" in config_params:
+            model, optimizer, _, _ = deepspeed.initialize(
+                args=args,
+                model=model,
+                model_parameters=model.parameters()
+            )
+        else:
+            from deepspeed.ops.adam import DeepSpeedCPUAdam
+            optimizer = DeepSpeedCPUAdam(model.parameters(), lr=2e-5)
+            model, optimizer, _, _ = deepspeed.initialize(
+                args=args,
+                model=model,
+                model_parameters=model.parameters(),
+                optimizer=optimizer
+            )
     else:
         model, optimizer, _, _ = deepspeed.initialize(
             args=args,
