@@ -2,21 +2,16 @@ import os
 import random
 import logging
 from pathlib import Path
-from typing import List, Tuple, Iterable, Union, Sequence, Dict
+from typing import List, Tuple, Iterable, Union, Sequence, Dict, Optional
 from dataclasses import dataclass, field, asdict
 
 import numpy as np
 import torch
 from torch.nn.utils.clip_grad import clip_grad_norm_
+from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
 
 from .logger import Logger
-
-try:
-    from apex import amp
-    APEX_AVAILABLE = True
-except ModuleNotFoundError:
-    APEX_AVAILABLE = False
 
 SEED = int(os.environ.get("SEED", 9293))
 
@@ -99,19 +94,16 @@ class BaseBot:
     callbacks: Sequence = ()
     pbar: bool = False
     expand_dict_inputs: bool = True
+    scaler: Optional[GradScaler] = None
 
     def __post_init__(self):
-        assert (self.use_amp and APEX_AVAILABLE) or (not self.use_amp)
         self.logger = Logger(
             self.name, str(self.log_dir), self.log_level,
             use_tensorboard=self.use_tensorboard, echo=self.echo)
         self.logger.info("SEED: %s", SEED)
         self.count_model_parameters()
-        if APEX_AVAILABLE:
-            if not self.use_amp and (hasattr(amp._amp_state, "opt_properties")):
-                self.logger.warning(
-                    "AMP initialization detected but use_amp = False. "
-                    "Did you forget to set `use_amp = True`?")
+        if self.use_amp:
+            self.scaler = GradScaler()
 
     def count_model_parameters(self):
         self.logger.info(
@@ -121,9 +113,7 @@ class BaseBot:
             "# of trainable parameters: {:,d}".format(
                 np.sum(list(p.numel() for p in self.model.parameters() if p.requires_grad))))
 
-    def train_one_step(self, input_tensors, target):
-        self.model.train()
-        assert self.model.training
+    def _forward(self, input_tensors, target):
         if len(input_tensors) == 1 and isinstance(input_tensors[0], dict):
             if self.expand_dict_inputs:
                 output = self.model(**input_tensors[0])
@@ -134,27 +124,36 @@ class BaseBot:
         batch_loss = self.criterion(
             self.extract_prediction(output), target
         ) / self.gradient_accumulation_steps
+        return output, batch_loss
+
+    def train_one_step(self, input_tensors, target):
+        self.model.train()
+        assert self.model.training
+        if self.use_amp:
+            with autocast():
+                output, batch_loss = self._forward(input_tensors, target)
+        else:
+            output, batch_loss = self._forward(input_tensors, target)
         if torch.isnan(batch_loss):
             self.logger.warning("NAN Loss dectected! Skipping this step...")
         else:
             if self.use_amp:
-                with amp.scale_loss(
-                    batch_loss, self.optimizer,
-                    delay_unscale=self.step % self.gradient_accumulation_steps != 0
-                ) as scaled_loss:
-                    scaled_loss.backward()
+                self.scaler.scale(batch_loss).backward()
             else:
                 batch_loss.backward()
             if self.step % self.gradient_accumulation_steps == 0:
                 if self.clip_grad > 0:
-                    if not self.use_amp:
-                        for param_group in self.optimizer.param_groups:
-                            clip_grad_norm_(
-                                param_group["params"], self.clip_grad)
-                    else:
-                        clip_grad_norm_(amp.master_params(
-                            self.optimizer), self.clip_grad)
-                self.optimizer.step()
+                    if self.use_amp:
+                        self.scaler.unscale_(self.optimizer)
+                    for param_group in self.optimizer.param_groups:
+                        clip_grad_norm_(
+                            param_group["params"], self.clip_grad)
+                if self.use_amp:
+                    self.scaler.step(self.optimizer)
+                    # Updates the scale for next iteration.
+                    self.scaler.update()
+                else:
+                    self.optimizer.step()
                 self.optimizer.zero_grad()
         return (
             batch_loss.data.cpu().item() * self.gradient_accumulation_steps,
@@ -345,7 +344,7 @@ class BaseBot:
             state_dict["model"] = model.state_dict()
             state_dict["optimizer"] = optimizer.state_dict()
             if self.use_amp:
-                state_dict["amp"] = amp.state_dict()
+                state_dict["scaler"] = self.scaler.state_dict()
             # Restoring stuffs
             for callback in self.callbacks:
                 callback.on_load_checkpoint(optimizer=optimizer)
@@ -366,10 +365,11 @@ class BaseBot:
         state_dict["model"] = model
         for callback in state_dict["callbacks"]:
             callback.on_load_checkpoint(optimizer=state_dict["optimizer"])
-        if "amp" in state_dict:
-            if APEX_AVAILABLE:
-                amp.load_state_dict(state_dict["amp"])
-                assert state_dict["use_amp"]
+        if "scaler" in state_dict:
+            scaler = GradScaler()
+            scaler.load_state_dict(state_dict["scaler"])
+            state_dict["scaler"] = scaler
+            assert state_dict["use_amp"]
             del state_dict["amp"]
         return cls(**state_dict)
 
