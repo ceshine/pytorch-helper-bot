@@ -126,8 +126,10 @@ class BaseBot:
         ) / self.gradient_accumulation_steps
         return output, batch_loss
 
-    def train_one_step(self, input_tensors, target):
+    def set_train_mode(self):
         self.model.train()
+
+    def train_one_step(self, input_tensors, target):
         assert self.model.training
         if self.use_amp:
             with autocast():
@@ -196,6 +198,7 @@ class BaseBot:
             callback.on_eval_ends(self, metrics)
 
     def train(self, *, checkpoint_interval, n_steps=None, total_steps=None):
+        self.set_train_mode()
         if total_steps:
             self.total_steps = total_steps
         if n_steps is None:
@@ -289,6 +292,7 @@ class BaseBot:
         for metric in self.metrics:
             metric_loss, metric_string = metric(global_ys, global_preds)
             metrics[metric.name] = (metric_loss, metric_string)
+        self.set_train_mode()
         return metrics
 
     def predict_batch(self, input_tensors):
