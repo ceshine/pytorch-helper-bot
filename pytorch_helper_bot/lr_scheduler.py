@@ -252,10 +252,8 @@ class MultiStageScheduler:
         self.schedulers = schedulers[idx]
         self.start_at_epochs = start_at_epochs[idx]
         self.last_epoch = last_epoch
-        # DO NO UNCOMMENT!
-        # The schedulers have already been initialized so step() is
-        # unnecessary here
-        # self.step()
+        # Explicitly run step(). Otherwise the initial LR will be initialized by the last sub-scheduler
+        self.step(0)
 
     def step(self, epoch=None):
         if epoch is None:
@@ -263,7 +261,7 @@ class MultiStageScheduler:
         else:
             self.last_epoch = epoch - 1
         for scheduler, starting_epoch in zip(self.schedulers, self.start_at_epochs):
-            if self.last_epoch >= starting_epoch:
+            if self.last_epoch +1 >= starting_epoch:
                 scheduler.last_epoch = self.last_epoch - starting_epoch
                 return scheduler.step()
 

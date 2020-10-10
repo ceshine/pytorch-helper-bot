@@ -5,8 +5,7 @@ setup(
     version='0.7.0',
     packages=['pytorch_helper_bot', 'pytorch_helper_bot/optimizers'],
     install_requires=[
-        'torch>=1.5.0',
-        'dataclasses',
+        'torch>=1.6.0',
         'tqdm>=4.29.1',
         'scikit-learn>=0.21.2',
         'tensorboardX>=1.8'

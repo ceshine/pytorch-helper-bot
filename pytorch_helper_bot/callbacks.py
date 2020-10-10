@@ -99,6 +99,9 @@ class WandbCallback(Callback):
         # NOTE: remember to train one more step to sync the final eval metrics to the server
         wandb.log(metrics_, step=bot.step)
 
+    def log_summary(self, key, value):
+        wandb.run.summary[key] = value
+
 
 class TelegramCallback(Callback):
     """A Telegram notification callback
