@@ -11,11 +11,6 @@ import torch.nn as nn
 from torch.nn.utils.clip_grad import clip_grad_norm_
 from tqdm.autonotebook import tqdm
 import matplotlib.pyplot as plt
-try:
-    from apex import amp
-    APEX_AVAILABLE = True
-except ModuleNotFoundError:
-    APEX_AVAILABLE = False
 
 from .lr_scheduler import ExponentialLR, LinearLR
 
@@ -76,7 +71,6 @@ class LRFinder(object):
         self.cache_dir = cache_dir
         self.use_amp = use_amp
         self.clip_grad = clip_grad
-        assert (self.use_amp and APEX_AVAILABLE) or (not self.use_amp)
 
         # Save the original state of the model and optimizer so they can be restored if
         # needed
