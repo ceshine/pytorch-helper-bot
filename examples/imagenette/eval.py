@@ -10,12 +10,6 @@ from dataset import TrainDataset, DATA_ROOT, build_dataframe_from_folder
 from transforms import get_test_transform
 from main import get_model, make_loader, CACHE_DIR, ImageClassificationBot
 
-try:
-    from apex import amp
-    APEX_AVAILABLE = True
-except ModuleNotFoundError:
-    APEX_AVAILABLE = False
-
 
 def get_class_idx_to_class_name_mapping(folder_to_idx):
     df_class_name = pd.read_csv(
@@ -34,7 +28,7 @@ def main():
     arg('--batch-size', type=int, default=32)
     arg('--workers', type=int, default=4)
     arg('--arch', type=str, default='seresnext50')
-    arg('--amp', type=str, default='')
+    arg('--amp', action='store_true')
     arg('--size', type=int, default=192)
     arg('--debug', action='store_true')
     arg('--model-path', type=str, default='')
@@ -48,12 +42,6 @@ def main():
     model.load_state_dict(torch.load(args.model_path, map_location="cpu"))
     if use_cuda:
         model = model.cuda()
-    if args.amp:
-        if not APEX_AVAILABLE:
-            raise ValueError("Apex is not installed!")
-        model = amp.initialize(
-            model, opt_level=args.amp
-        )
 
     # The first line is to make sure we have the same class_map as in training
     _, class_map = build_dataframe_from_folder(train_dir)
@@ -77,15 +65,15 @@ def main():
         criterion=None,
         callbacks=[],
         pbar=True, use_tensorboard=False,
-        use_amp=(args.amp != '')
+        use_amp(args.amp
     )
-    logits, truths = bot.predict(valid_loader, return_y=True)
-    probs = torch.softmax(logits, dim=-1)
-    preds = torch.argmax(probs, dim=1)
+    logits, truths=bot.predict(valid_loader, return_y=True)
+    probs=torch.softmax(logits, dim=-1)
+    preds=torch.argmax(probs, dim=1)
     print(
         f"Validation accuracy: {np.mean(preds.numpy() == truths.numpy()) * 100:.2f}%"
     )
-    df_out = pd.DataFrame({
+    df_out=pd.DataFrame({
         "truth": truths.numpy(),
         "max_prob": np.max(probs.numpy(), axis=1),
         "truth_prob": torch.gather(probs, 1, truths[:, None]).numpy()[:, 0],

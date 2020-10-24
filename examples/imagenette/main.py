@@ -27,12 +27,6 @@ from dataset import TrainDataset, N_CLASSES, DATA_ROOT, build_dataframe_from_fol
 from transforms import get_train_transform, get_test_transform
 from telegram_tokens import BOT_TOKEN, CHAT_ID
 
-try:
-    from apex import amp
-    APEX_AVAILABLE = True
-except ModuleNotFoundError:
-    APEX_AVAILABLE = False
-
 CACHE_DIR = Path('./data/cache/')
 CACHE_DIR.mkdir(exist_ok=True, parents=True)
 MODEL_DIR = Path('./data/cache/')
@@ -120,12 +114,6 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
             [n for n, p in model.named_parameters()
              if any(nd in n for nd in NO_DECAY)]
         )
-    if args.amp:
-        if not APEX_AVAILABLE:
-            raise ValueError("Apex is not installed!")
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level=args.amp
-        )
 
     checkpoints = CheckpointCallback(
         keep_n_checkpoints=1,
@@ -185,7 +173,7 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
         criterion=criterion,
         callbacks=callbacks,
         pbar=False, use_tensorboard=True,
-        use_amp=(args.amp != '')
+        use_amp=args.amp
     )
     bot.train(
         total_steps=total_steps,
@@ -200,12 +188,6 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
 def find_lr(args, model, train_loader, criterion):
     n_steps = len(train_loader) * args.epochs
     optimizer = get_optimizer(model, args.lr)
-    if args.amp:
-        if not APEX_AVAILABLE:
-            raise ValueError("Apex is not installed!")
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level=args.amp
-        )
     finder = LRFinder(
         model, optimizer, criterion,
         clip_grad=10.,
@@ -248,7 +230,7 @@ def main():
     arg('--epochs', type=int, default=5)
     arg('--mixup-alpha', type=float, default=0)
     arg('--arch', type=str, default='seresnext50')
-    arg('--amp', type=str, default='')
+    arg('--amp', action='store_true')
     arg('--size', type=int, default=192)
     arg('--debug', action='store_true')
     arg('--radam', action='store_true')
