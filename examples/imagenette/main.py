@@ -16,7 +16,7 @@ from pytorch_helper_bot import (
     CheckpointCallback, EarlyStoppingCallback,
     MultiStageScheduler, LinearLR,
     TelegramCallback, WandbCallback,
-    AdamW
+    CutMixCallback, AdamW
 )
 from pytorch_helper_bot.loss import MixUpSoftmaxLoss
 from pytorch_helper_bot.lr_finder import LRFinder
@@ -171,6 +171,9 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
     if args.mixup_alpha:
         callbacks.append(MixUpCallback(
             alpha=args.mixup_alpha, softmax_target=True))
+    if args.cutmix_alpha:
+        callbacks.append(CutMixCallback(
+            alpha=args.cutmix_alpha, minmax=None, softmax_target=True))
     if BOT_TOKEN:
         callbacks.append(
             TelegramCallback(
@@ -247,6 +250,7 @@ def main():
     arg('--workers', type=int, default=4)
     arg('--epochs', type=int, default=5)
     arg('--mixup-alpha', type=float, default=0)
+    arg('--cutmix-alpha', type=float, default=0)
     arg('--arch', type=str, default='seresnext50')
     arg('--amp', type=str, default='')
     arg('--size', type=int, default=192)

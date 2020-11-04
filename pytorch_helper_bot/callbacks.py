@@ -20,7 +20,7 @@ __all__ = [
     "Callback", "MixUpCallback", "LearningRateSchedulerCallback",
     "StepwiseLinearPropertySchedulerCallback", "MovingAverageStatsTrackerCallback",
     "CheckpointCallback", "EarlyStoppingCallback", "TelegramCallback",
-    "WandbCallback"
+    "WandbCallback", "CutMixCallback"
 ]
 
 
