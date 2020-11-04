@@ -2,7 +2,7 @@ import socket
 from time import time
 from datetime import datetime
 from collections import deque, defaultdict
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, Tuple, List, Optional, Sequence
 from pathlib import Path
 
 import torch
@@ -20,7 +20,7 @@ __all__ = [
     "Callback", "MixUpCallback", "LearningRateSchedulerCallback",
     "StepwiseLinearPropertySchedulerCallback", "MovingAverageStatsTrackerCallback",
     "CheckpointCallback", "EarlyStoppingCallback", "TelegramCallback",
-    "WandbCallback", "CutMixCallback"
+    "WandbCallback", "CutMixCallback", "RandomCallbackChoices"
 ]
 
 
@@ -53,6 +53,50 @@ class Callback:
         return
 
     def reset(self):
+        return
+
+
+class RandomCallbackChoices:
+    def __init__(self, callbacks: Sequence[Callback], p: Sequence[Callback]):
+        self.p = np.asarray(p) / np.sum(p)
+        self.callbacks = callbacks
+        assert len(p) == len(callbacks)
+
+    def get_callback(self):
+        return np.random.choice(self.callbacks, p=self.p)
+
+    def on_batch_inputs(self, bot: BaseBot, input_tensors: torch.Tensor, targets: torch.Tensor, is_eval: bool):
+        return self.get_callback().on_batch_inputs(
+            bot, input_tensors, targets, is_eval)
+
+    def on_train_starts(self, bot: BaseBot):
+        return self.get_callback().on_train_starts(bot)
+
+    def on_train_ends(self, bot: BaseBot):
+        return self.get_callback().on_train_ends(bot)
+
+    def on_epoch_ends(self, bot: BaseBot, epoch: int):
+        return self.get_callback().on_epoch_ends(bot, epoch)
+
+    def on_eval_starts(self, bot: BaseBot):
+        return self.get_callback().on_eval_starts(bot)
+
+    def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
+        return self.get_callback().on_eval_ends(bot, metrics)
+
+    def on_step_ends(self, bot: BaseBot, train_loss: float, train_weight: int):
+        return self.get_callback().on_step_ends(bot, train_loss, train_weight)
+
+    def on_load_checkpoint(self, **kwargs):
+        # Not Supported
+        return
+
+    def on_save_checkpoint(self):
+        # Not Supported
+        return
+
+    def reset(self):
+        # Not Supported
         return
 
 
@@ -176,7 +220,7 @@ class CutMixCallback(Callback):
     def on_batch_inputs(self, bot: BaseBot, input_tensors, targets, is_eval: bool):
         if is_eval is True:
             return input_tensors, targets
-        batch = input_tensors[0].clone()
+        batch = input_tensors[0]
         batch_flipped = batch.flip(0).clone()
         lambd = np.random.beta(self.alpha, self.alpha, batch.size(0))
         for i in range(batch.shape[0]):
@@ -199,7 +243,7 @@ class CutMixCallback(Callback):
                 targets * lambd_tensor +
                 targets.flip(0) * (1-lambd_tensor)
             )
-        input_tensors[0] = batch
+        # input_tensors[0] = batch
         return input_tensors, new_targets
 
 
