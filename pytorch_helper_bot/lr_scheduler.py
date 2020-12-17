@@ -19,6 +19,7 @@ class BaseLRScheduler(_LRScheduler):
         """Intentionally not calling super().__init__()
            to skip optimizer type checking.
         """
+        self.verbose = False
         if not isinstance(optimizer, Optimizer):
             flag = False
             try:
