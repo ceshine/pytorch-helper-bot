@@ -2,7 +2,7 @@ import socket
 from time import time
 from datetime import datetime
 from collections import deque, defaultdict
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, Tuple, List, Optional, Sequence
 from pathlib import Path
 
 import torch
@@ -14,12 +14,13 @@ except ImportError:
     WANDB = False
 
 from .bot import BaseBot, StopTraining
+from .cutmix_utils import cutmix_bbox_and_lam
 
 __all__ = [
     "Callback", "MixUpCallback", "LearningRateSchedulerCallback",
     "StepwiseLinearPropertySchedulerCallback", "MovingAverageStatsTrackerCallback",
     "CheckpointCallback", "EarlyStoppingCallback", "TelegramCallback",
-    "WandbCallback"
+    "WandbCallback", "CutMixCallback", "RandomCallbackChoices"
 ]
 
 
@@ -52,6 +53,50 @@ class Callback:
         return
 
     def reset(self):
+        return
+
+
+class RandomCallbackChoices:
+    def __init__(self, callbacks: Sequence[Callback], p: Sequence[Callback]):
+        self.p = np.asarray(p) / np.sum(p)
+        self.callbacks = callbacks
+        assert len(p) == len(callbacks)
+
+    def get_callback(self):
+        return np.random.choice(self.callbacks, p=self.p)
+
+    def on_batch_inputs(self, bot: BaseBot, input_tensors: torch.Tensor, targets: torch.Tensor, is_eval: bool):
+        return self.get_callback().on_batch_inputs(
+            bot, input_tensors, targets, is_eval)
+
+    def on_train_starts(self, bot: BaseBot):
+        return self.get_callback().on_train_starts(bot)
+
+    def on_train_ends(self, bot: BaseBot):
+        return self.get_callback().on_train_ends(bot)
+
+    def on_epoch_ends(self, bot: BaseBot, epoch: int):
+        return self.get_callback().on_epoch_ends(bot, epoch)
+
+    def on_eval_starts(self, bot: BaseBot):
+        return self.get_callback().on_eval_starts(bot)
+
+    def on_eval_ends(self, bot: BaseBot, metrics: Dict[str, Tuple[float, str]]):
+        return self.get_callback().on_eval_ends(bot, metrics)
+
+    def on_step_ends(self, bot: BaseBot, train_loss: float, train_weight: int):
+        return self.get_callback().on_step_ends(bot, train_loss, train_weight)
+
+    def on_load_checkpoint(self, **kwargs):
+        # Not Supported
+        return
+
+    def on_save_checkpoint(self):
+        # Not Supported
+        return
+
+    def reset(self):
+        # Not Supported
         return
 
 
@@ -161,6 +206,48 @@ class TelegramCallback(Callback):
         ]
         text = '\n'.join(contents)
         self.telegram_bot.send_message(chat_id=self.chat_id, text=text)
+
+
+class CutMixCallback(Callback):
+    """Assumes the first dimension is batch.
+
+    Reference: https://github.com/rwightman/pytorch-image-models/blob/8c9814e3f500e8b37aae86dd4db10aba2c295bd2/timm/data/mixup.py
+    """
+
+    def __init__(self, alpha: float = 0.4, softmax_target: bool = False, minmax: Optional[Tuple[float, float]] = None):
+        super().__init__()
+        self.alpha = alpha
+        self.softmax_target = softmax_target
+        self.minmax = minmax
+
+    def on_batch_inputs(self, bot: BaseBot, input_tensors, targets, is_eval: bool):
+        if is_eval is True:
+            return input_tensors, targets
+        batch = input_tensors[0]
+        batch_flipped = batch.flip(0).clone()
+        lambd = np.random.beta(self.alpha, self.alpha, batch.size(0))
+        for i in range(batch.shape[0]):
+            (yl, yh, xl, xh), lambd_tmp = cutmix_bbox_and_lam(
+                batch.shape, lambd[i], ratio_minmax=self.minmax, correct_lam=True)
+            lambd[i] = lambd_tmp
+            # fill in the cut regions
+            batch[i, :, yl:yh, xl:xh] = batch_flipped[i, :, yl:yh, xl:xh]
+        # Create the tensor and expand (for target)
+        lambd_tensor = batch.new(lambd).view(
+            -1, *[1 for _ in range(len(targets.size())-1)]
+        ).expand(-1, *targets.shape[1:])
+        # Combine targets
+        if self.softmax_target:
+            new_targets = torch.stack([
+                targets.float(), targets.flip(0).float(), lambd_tensor
+            ], dim=1)
+        else:
+            new_targets = (
+                targets * lambd_tensor +
+                targets.flip(0) * (1-lambd_tensor)
+            )
+        # input_tensors[0] = batch
+        return input_tensors, new_targets
 
 
 class MixUpCallback(Callback):

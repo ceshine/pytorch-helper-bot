@@ -16,7 +16,7 @@ from pytorch_helper_bot import (
     CheckpointCallback, EarlyStoppingCallback,
     MultiStageScheduler, LinearLR,
     TelegramCallback, WandbCallback,
-    AdamW
+    CutMixCallback, AdamW, RandomCallbackChoices
 )
 from pytorch_helper_bot.loss import MixUpSoftmaxLoss
 from pytorch_helper_bot.lr_finder import LRFinder
@@ -148,7 +148,10 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
         WandbCallback(
             config={
                 "epochs": args.epochs,
-                "arch": args.arch
+                "arch": args.arch,
+                "mixup_alpha": args.mixup_alpha,
+                "cutmix_alpha": args.cutmix_alpha,
+                "batch_size": args.batch_size
             },
             name="Imagenatte",
             watch_freq=200,
@@ -156,9 +159,20 @@ def train_from_scratch(args, model, train_loader, valid_loader, criterion):
             run_name=args.run_name if args.run_name else None
         )
     ]
-    if args.mixup_alpha:
-        callbacks.append(MixUpCallback(
-            alpha=args.mixup_alpha, softmax_target=True))
+    if args.mixup_alpha and args.cutmix_alpha:
+        callbacks.append(RandomCallbackChoices([
+            MixUpCallback(
+                alpha=args.mixup_alpha, softmax_target=True),
+            CutMixCallback(
+                alpha=args.cutmix_alpha, minmax=(0.2, 0.8), softmax_target=True)
+        ], p=[0.5, 0.5]))
+    else:
+        if args.mixup_alpha:
+            callbacks.append(MixUpCallback(
+                alpha=args.mixup_alpha, softmax_target=True))
+        if args.cutmix_alpha:
+            callbacks.append(CutMixCallback(
+                alpha=args.cutmix_alpha, minmax=None, softmax_target=True))
     if BOT_TOKEN:
         callbacks.append(
             TelegramCallback(
@@ -229,6 +243,7 @@ def main():
     arg('--workers', type=int, default=4)
     arg('--epochs', type=int, default=5)
     arg('--mixup-alpha', type=float, default=0)
+    arg('--cutmix-alpha', type=float, default=0)
     arg('--arch', type=str, default='seresnext50')
     arg('--amp', action='store_true')
     arg('--size', type=int, default=192)
