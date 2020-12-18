@@ -158,7 +158,8 @@ class TelegramCallback(Callback):
         except ImportError:
             raise ImportError(
                 "Please install 'python-telegram-bot' before using TelegramCallback.")
-        self.telegram_bot = telegram.Bot(token=token)
+        self._token = token
+        self.telegram_bot = telegram.Bot(token=self._token)
         self.host_name = socket.gethostname()
         self.report_evals = report_evals
         self.chat_id = chat_id
@@ -203,6 +204,12 @@ class TelegramCallback(Callback):
         ]
         text = '\n'.join(contents)
         self.telegram_bot.send_message(chat_id=self.chat_id, text=text)
+
+    def on_load_checkpoint(self, **kwargs):
+        self.telegram_bot = telegram.Bot(token=self._token)
+
+    def on_save_checkpoint(self):
+        self.telegram_bot = None
 
 
 class CutMixCallback(Callback):
