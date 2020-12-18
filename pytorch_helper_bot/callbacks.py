@@ -121,6 +121,8 @@ class WandbCallback(Callback):
         self.log_freq = log_freq
         self.project = name.lower()
         self.config = config
+        self.project_name = name.lower()
+        self.run_name = run_name
 
     # def on_load_checkpoint(self, **kwargs):
     #     wandb.init(config=self.config, project=self.project)
@@ -146,6 +148,9 @@ class WandbCallback(Callback):
 
     def log_summary(self, key, value):
         wandb.run.summary[key] = value
+
+    def on_load_checkpoint(self, **kwargs):
+        wandb.init(config=self.config, project=self.project_name, name=self.run_name)
 
 
 class TelegramCallback(Callback):
