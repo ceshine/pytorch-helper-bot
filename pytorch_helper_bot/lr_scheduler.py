@@ -192,6 +192,10 @@ class MultiStageScheduler(_LRScheduler):
                 scheduler.last_epoch = self.last_epoch - starting_epoch
                 return scheduler.step()
 
+    @property
+    def optimizer(self):
+        return self.schedulers[0].optimizer
+
     def switch_optimizer(self, optimizer):
         for scheduler in self.schedulers:
             scheduler.optimizer = optimizer
