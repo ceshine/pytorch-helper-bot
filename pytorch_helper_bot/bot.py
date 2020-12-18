@@ -348,7 +348,7 @@ class BaseBot:
                 state_dict["amp"] = amp.state_dict()
             # Restoring stuffs
             for callback in self.callbacks:
-                callback.on_load_checkpoint(optimizer=optimizer)
+                callback.on_load_checkpoint(optimizer=optimizer, cold_start=False)
             self.model = model
             self.optimizer = optimizer
             self.train_loader = train_loader
@@ -365,7 +365,7 @@ class BaseBot:
         model.load_state_dict(state_dict["model"])
         state_dict["model"] = model
         for callback in state_dict["callbacks"]:
-            callback.on_load_checkpoint(optimizer=state_dict["optimizer"])
+            callback.on_load_checkpoint(optimizer=state_dict["optimizer"], cold_start=True)
         if "amp" in state_dict:
             if APEX_AVAILABLE:
                 amp.load_state_dict(state_dict["amp"])
