@@ -121,9 +121,8 @@ class WandbCallback(Callback):
         self.log_freq = log_freq
         self.project = name.lower()
         self.config = config
-
-    # def on_load_checkpoint(self, **kwargs):
-    #     wandb.init(config=self.config, project=self.project)
+        self.project_name = name.lower()
+        self.run_name = run_name
 
     def on_train_starts(self, bot: BaseBot):
         wandb.watch(bot.model, log=self.watch_level,
@@ -143,6 +142,12 @@ class WandbCallback(Callback):
         del metrics_["loss"]
         # NOTE: remember to train one more step to sync the final eval metrics to the server
         wandb.log(metrics_, step=bot.step)
+
+    def log_summary(self, key, value):
+        wandb.run.summary[key] = value
+
+    def on_load_checkpoint(self, **kwargs):
+        wandb.init(config=self.config, project=self.project_name, name=self.run_name)
 
 
 class TelegramCallback(Callback):
