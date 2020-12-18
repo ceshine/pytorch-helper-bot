@@ -149,8 +149,9 @@ class WandbCallback(Callback):
     def log_summary(self, key, value):
         wandb.run.summary[key] = value
 
-    def on_load_checkpoint(self, **kwargs):
-        wandb.init(config=self.config, project=self.project_name, name=self.run_name)
+    def on_load_checkpoint(self, cold_start: bool, **kwargs):
+        if cold_start:
+            wandb.init(config=self.config, project=self.project_name, name=self.run_name)
 
 
 class TelegramCallback(Callback):
@@ -214,6 +215,7 @@ class TelegramCallback(Callback):
         self.telegram_bot.send_message(chat_id=self.chat_id, text=text)
 
     def on_load_checkpoint(self, **kwargs):
+        import telegram
         self.telegram_bot = telegram.Bot(token=self._token)
 
     def on_save_checkpoint(self):
