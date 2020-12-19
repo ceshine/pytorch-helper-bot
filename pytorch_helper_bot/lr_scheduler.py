@@ -253,10 +253,9 @@ class MultiStageScheduler:
         self.schedulers = schedulers[idx]
         self.start_at_epochs = start_at_epochs[idx]
         self.last_epoch = last_epoch
-        # DO NO UNCOMMENT!
-        # The schedulers have already been initialized so step() is
-        # unnecessary here
-        # self.step()
+        # Explicitly run step(). Otherwise the initial LR will be initialized by the last sub-scheduler
+        self.step(0)
+        self.optimizer = self.schedulers[0].optimizer
 
     def step(self, epoch=None):
         if epoch is None:
@@ -272,7 +271,9 @@ class MultiStageScheduler:
         for scheduler in self.schedulers:
             scheduler.optimizer = optimizer
             scheduler.optimizer._step_count = scheduler._step_count
+        self.optimizer = self.schedulers[0].optimizer
 
     def clear_optimizer(self):
         for scheduler in self.schedulers:
             scheduler.optimizer = None
+        self.optimizer = None
