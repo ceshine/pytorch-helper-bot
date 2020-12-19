@@ -243,7 +243,7 @@ class GradualWarmupScheduler(BaseLRScheduler):
             self.after_scheduler.optimizer = None
 
 
-class MultiStageScheduler:
+class MultiStageScheduler(_LRScheduler):
     def __init__(self, schedulers: Sequence, start_at_epochs: Sequence[int], last_epoch: int = -1):
         assert len(schedulers) == len(start_at_epochs)
         schedulers, start_at_epochs = (
